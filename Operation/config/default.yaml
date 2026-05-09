@@ -1,0 +1,116 @@
+# Default Configuration
+
+environment: dev
+debug: false
+
+# Kubernetes Configuration
+kubernetes:
+  namespace: green-devops
+  service_account: operation-phase
+  api_retry_count: 3
+  api_retry_delay: 1
+
+# Prometheus Configuration
+prometheus:
+  url: http://prometheus:9090
+  query_timeout_seconds: 10
+  retry_count: 3
+  retry_delay: 1
+
+# Data Collection
+data_collection:
+  enabled: true
+  interval_seconds: 30
+  retention_days: 90
+  storage_path: data/collected_metrics/
+
+# Workload Prediction
+workload_prediction:
+  model_path: models/trained/workload_predictor_v1.pkl
+  scaler_path: models/scalers/workload_scaler.pkl
+  prediction_window_seconds: 30
+  confidence_threshold: 0.80
+  fallback_to_simple: true
+
+# Carbon Calculation
+carbon_calculation:
+  model_path: models/trained/carbon_estimator_v1.pkl
+  method: grid_intensity
+  default_carbon_intensity_grams_per_kwh: 400
+  pue_factor: 1.2
+  calculation_method: linear  # linear, quadratic
+
+# Job Prioritization
+job_prioritization:
+  model_path: models/trained/job_prioritizer_v1.pkl
+  scaler_path: models/scalers/job_encoder.pkl
+  max_delayed_jobs: 100
+  max_delay_duration_seconds: 3600
+  fairness_window_hours: 24
+
+# Decision Engine
+decision_engine:
+  optimization_method: multi_objective  # multi_objective, weighted_sum
+  carbon_weight: 0.4
+  performance_weight: 0.4
+  cost_weight: 0.2
+  decision_cooldown_seconds: 60
+
+# SLA Configuration
+sla:
+  response_time_ms: 200
+  availability_percent: 99.9
+  max_cpu_utilization: 0.85
+  max_memory_utilization: 0.85
+
+# Scaling Configuration
+scaling:
+  min_replicas: 1
+  max_replicas: 50
+  scale_up_threshold: 0.75
+  scale_down_threshold: 0.25
+  scale_unit_percent: 25
+  scale_up_stabilization_minutes: 3
+  scale_down_stabilization_minutes: 10
+
+# Model Retraining
+model_retraining:
+  enabled: true
+  min_historical_days: 7
+  interval_hours: 24
+  fallback_on_error: true
+  keep_historical_versions: 3
+  validation_split: 0.2
+  test_split: 0.2
+
+# Feature Engineering
+feature_engineering:
+  window_size_seconds: 300
+  lag_features: [30, 60, 120, 300]
+  rolling_window_sizes: [1, 5, 15, 30]
+  temporal_features: true
+  statistical_features: true
+
+# Logging
+logging:
+  level: INFO
+  format: json
+  output_path: logs/
+  max_file_size_mb: 100
+  backup_count: 10
+
+# API
+api:
+  host: 0.0.0.0
+  port: 8000
+  workers: 4
+  timeout_seconds: 30
+  rate_limit_requests: 100
+  rate_limit_window_seconds: 60
+
+# Monitoring
+monitoring:
+  prometheus_export_enabled: true
+  export_port: 8000
+  export_path: /metrics
+  histogram_buckets: [10, 50, 100, 200, 500, 1000]

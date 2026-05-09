@@ -1,0 +1,56 @@
+# Pod Scaling Configuration
+
+# Replica limits
+scaling_limits:
+  min_replicas: 1
+  max_replicas: 50
+  default_replicas: 2
+
+# Scaling thresholds
+scaling_thresholds:
+  cpu_utilization_scale_up_percent: 75
+  cpu_utilization_scale_down_percent: 25
+  memory_utilization_scale_up_percent: 80
+  memory_utilization_scale_down_percent: 30
+  combined_utilization_scale_up_percent: 80
+
+# Scaling behavior
+scaling_behavior:
+  scale_up_percent_per_decision: 25
+  scale_down_percent_per_decision: 25
+  min_scale_unit: 1  # Minimum pods to add/remove
+  max_scale_unit: 10  # Maximum pods to add/remove per decision
+
+# Stabilization and calmness
+scaling_stability:
+  scale_up_stabilization_minutes: 3
+  scale_down_stabilization_minutes: 5
+  min_scaling_interval_seconds: 60
+  max_scaling_interval_seconds: 300
+
+# Predictive scaling (based on predictions)
+predictive_scaling:
+  enabled: true
+  prediction_confidence_threshold: 0.80
+  scale_ahead_seconds: 30
+  scale_ahead_percent: 20  # Over-scale by 20% for safety
+
+# Cost-aware scaling
+cost_aware_scaling:
+  enabled: true
+  balance_cost_and_performance: true
+  cost_optimization_factor: 0.3  # 0% = performance only, 100% = cost only
+
+# Pod disruption policies
+disruption_policies:
+  enable_pod_disruption_budgets: true
+  max_disruptions_percent: 50
+  allow_graceful_termination: true
+  termination_grace_period_seconds: 30
+
+# Node affinity and pod anti-affinity
+affinity_policies:
+  pod_anti_affinity: preferred  # required, preferred, none
+  node_affinity: prefer_balanced
+  spread_across_zones: true
+  spread_across_nodes: true

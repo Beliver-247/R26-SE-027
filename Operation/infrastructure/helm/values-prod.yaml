@@ -1,0 +1,5 @@
+# Production Helm values
+environment: prod
+replicaCount: 1
+logLevel: INFO
+prometheusUrl: http://prometheus.monitoring:9090

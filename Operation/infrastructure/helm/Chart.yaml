@@ -1,0 +1,16 @@
+# Helm Chart for Green DevOps Operation Component
+
+apiVersion: v2
+name: operation-phase
+description: "Green DevOps Operation Phase - Carbon-aware autoscaling and job optimization"
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - kubernetes
+  - carbon
+  - scaling
+  - green-devops
+maintainers:
+  - name: Research Team
+    email: research@greendevops.io
