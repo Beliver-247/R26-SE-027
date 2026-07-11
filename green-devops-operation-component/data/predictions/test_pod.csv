@@ -1,0 +1,2 @@
+timestamp,predicted_cpu,predicted_load_level,recommended_pods,data_source
+1000,45.50,NORMAL,2,runtime

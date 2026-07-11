@@ -1,0 +1,59 @@
+# Carbon Calculation Configuration
+
+# Energy source carbon intensity (grams CO2 per kWh)
+energy_source_mix:
+  default_co2_grams_per_kwh: 400
+  
+  # Regional variations (can be overridden per deployment)
+  regions:
+    us_average: 385
+    eu_average: 238
+    asia_average: 520
+    au_average: 700
+    ca_average: 150
+
+# Infrastructure efficiency
+infrastructure:
+  pue_factor: 1.2  # Power Usage Effectiveness
+  cooling_efficiency: 0.9
+  transmission_loss: 0.05  # 5% loss in transmission
+
+# Resource to power mapping
+resource_mapping:
+  cpu_watts_per_core: 10      # Watts per vCPU
+  memory_watts_per_gb: 5      # Watts per GB RAM
+  storage_watts_per_gb: 0.01  # Watts per GB storage
+  network_watts_per_gbps: 5   # Watts per Gbps bandwidth
+
+# Embodied carbon
+embodied_carbon:
+  # grams CO2 for hardware manufacturing
+  server_embodied_co2_grams: 1000000  # 1 ton CO2 equivalent
+  server_lifespan_years: 5
+  storage_embodied_co2_per_gb: 0.1
+  network_embodied_co2_per_gbps: 50000
+
+# Calculation method parameters
+calculation:
+  method: power_based  # power_based, lookup_table, linear_approximation
+  duration_unit_seconds: 1  # Default duration for calculations
+  
+  # Linear approximation coefficients
+  # carbon(resources) = base + cpu_coef*cpu + mem_coef*memory
+  linear_approximation:
+    base_grams: 100
+    cpu_coefficient: 50      # grams CO2 per vCPU-hour
+    memory_coefficient: 2    # grams CO2 per GB-hour
+    scale_coefficient: 100   # Base overhead per scaling operation
+
+# Scenarios
+scenarios:
+  scale_up_overhead: 50  # gCO2 overhead for scaling operation
+  pod_startup_time_seconds: 5
+  pod_shutdown_time_seconds: 2
+
+# Carbon savings
+savings:
+  job_delay_factor: 0.95  # Delayed jobs use 95% fewer resources
+  idle_pod_multiplier: 0.1  # Idle pod uses 10% of active pod resources
+  consolidation_factor: 0.85  # Consolidated tasks use 85% of scattered resources

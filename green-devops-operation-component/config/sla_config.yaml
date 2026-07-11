@@ -1,0 +1,63 @@
+# SLA Configuration
+
+# Response time requirements (milliseconds)
+sla_response_time:
+  default: 200
+  critical: 100
+  batch: 5000
+
+# Availability requirements (percentage)
+sla_availability:
+  default: 99.9
+  critical: 99.99
+  batch: 95.0
+
+# Resource utilization thresholds
+sla_thresholds:
+  cpu_utilization_percent: 85
+  memory_utilization_percent: 85
+  network_utilization_percent: 80
+  disk_utilization_percent: 90
+
+# Scaling constraints
+sla_scaling:
+  max_scale_up_rate_replicas_per_minute: 5
+  max_scale_down_rate_replicas_per_minute: 2
+  min_pod_lifetime_minutes: 2
+  scale_up_cooldown_seconds: 30
+  scale_down_cooldown_seconds: 120
+
+# Pod placement and resource requirements
+sla_pod_requirements:
+  min_cpu_cores: 0.1
+  max_cpu_cores: 4.0
+  min_memory_gb: 0.128
+  max_memory_gb: 16.0
+  preferred_node_selector: {}
+
+# Performance penalties
+sla_violations:
+  response_time_penalty_per_ms: 0.1
+  unavailability_penalty_per_percent: 10
+  pod_density_penalty: 0.05
+
+# Critical vs. delayable job classification
+job_classification:
+  critical_patterns:
+    - pattern: "payment.*"
+      delay_allowed: false
+    - pattern: "api.*"
+      delay_allowed: false
+    - pattern: "user.*request"
+      delay_allowed: false
+  
+  delayable_patterns:
+    - pattern: "batch.*"
+      max_delay_seconds: 3600
+    - pattern: "analytics.*"
+      max_delay_seconds: 1800
+    - pattern: "cleanup.*"
+      max_delay_seconds: 7200
+  
+  default_delay_allowed: true
+  default_max_delay_seconds: 300

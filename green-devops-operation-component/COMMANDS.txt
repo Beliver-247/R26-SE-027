@@ -1,0 +1,109 @@
+===============================================================================
+GREEN DEVOPS DASHBOARD - COMMAND REFERENCE CARD
+===============================================================================
+
+📋 COPY/PASTE THESE COMMANDS
+
+Terminal 1 - Start API Server:
+  cd d:\Research\Operation\green-devops-operation-component
+  python run_dashboard.py --api
+
+Terminal 2 - Start Unified Dashboard:
+  cd d:\Research\Operation\green-devops-operation-component
+  python run_dashboard.py --unified
+
+Then open browser:
+  http://localhost:8503
+
+===============================================================================
+
+🎯 ALL AVAILABLE COMMANDS
+
+API Server:
+  python run_dashboard.py --api
+
+Unified Dashboard (Recommended):
+  python run_dashboard.py --unified
+
+Level 1 Dashboard (Non-Technical):
+  python run_dashboard.py --level 1
+
+Level 2 Dashboard (Technical):
+  python run_dashboard.py --level 2
+
+Verify All Dashboards:
+  python verify_unified_dashboard.py
+
+Show All Options:
+  python run_dashboard.py --all
+
+===============================================================================
+
+📺 ACCESS URLS
+
+Unified Dashboard (with sidebar):
+  http://localhost:8503
+
+Level 1 Dashboard (Overview):
+  http://localhost:8501
+
+Level 2 Dashboard (Technical):
+  http://localhost:8502
+
+API Server (Health Check):
+  http://localhost:8000/health
+
+===============================================================================
+
+✅ QUICK VERIFICATION
+
+Run this to verify everything works:
+  python verify_unified_dashboard.py
+
+Expected: ✅ ALL TESTS PASSED
+
+===============================================================================
+
+🆘 IF SOMETHING GOES WRONG
+
+Problem: "streamlit not recognized"
+Solution: Use launcher: python run_dashboard.py --unified
+
+Problem: "Can't find run_live_api.py"
+Solution: Use launcher: python run_dashboard.py --api
+
+Problem: No data displays
+Solution: 1) Check API is running
+          2) Wait 5 seconds
+          3) Click "Refresh Now" in dashboard
+
+Problem: Port already in use
+Solution: Ctrl+C to stop, wait 5s, try again
+
+===============================================================================
+
+📖 DOCUMENTATION
+
+For more details, read:
+  - START.md - Quick 30-second guide
+  - STARTUP_INSTRUCTIONS.py - Detailed setup
+  - ISSUES_FIXED.md - What was fixed
+  - QUICK_REFERENCE.py - All commands
+
+===============================================================================
+
+🚀 YOU ARE READY!
+
+The unified dashboard is fully set up with:
+✓ All paths corrected
+✓ All commands working
+✓ Launcher script for easy startup
+✓ Real data integration
+✓ Both Level 1 and Level 2 dashboards
+
+START NOW:
+  python run_dashboard.py --api        (Terminal 1)
+  python run_dashboard.py --unified    (Terminal 2)
+  Then: http://localhost:8503
+
+===============================================================================

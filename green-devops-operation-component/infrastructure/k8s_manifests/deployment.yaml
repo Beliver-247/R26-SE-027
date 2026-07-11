@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operation-phase
+  namespace: green-devops
+  labels:
+    app: operation-phase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: operation-phase
+  template:
+    metadata:
+      labels:
+        app: operation-phase
+    spec:
+      serviceAccountName: operation-phase
+      containers:
+      - name: operation-phase
+        image: green-devops-operation:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: api
+        env:
+        - name: ENVIRONMENT
+          value: "prod"
+        - name: PROMETHEUS_URL
+          value: "http://prometheus:9090"
+        - name: KUBECONFIG
+          value: "/var/run/secrets/kubernetes.io/serviceaccount"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+        - name: models
+          mountPath: /app/models
+        - name: data
+          mountPath: /app/data
+      volumes:
+      - name: config
+        configMap:
+          name: operation-phase-config
+      - name: models
+        emptyDir: {}
+      - name: data
+        emptyDir: {}

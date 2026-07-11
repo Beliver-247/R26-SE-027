@@ -1,0 +1,7 @@
+timestamp,scenario_name,predicted_cpu,load_level,current_pods,recommended_pods,final_pods,final_action,sla_preserved,jobs_delayed,carbon_saving_gco2,carbon_saving_percent
+2026-05-04T02:16:56.540202Z,LOW LOAD,20,LOW,0,1,0,N/A,True,3,0.0,0.0
+2026-05-04T02:17:07.877169Z,NORMAL LOAD,55,NORMAL,0,3,0,N/A,True,2,3.33,66.6
+2026-05-04T02:17:19.158295Z,HIGH LOAD,85,HIGH,0,5,0,N/A,True,1,0.0,0.0
+2026-05-04T02:17:30.346579Z,HIGH LOAD NO DELAY,90,HIGH,0,5,0,N/A,True,0,0.0,0.0
+2026-05-04T02:17:41.562812Z,BACK TO LOW LOAD,25,LOW,0,1,0,N/A,True,3,0.0,0.0
+2026-05-04T02:17:52.793819Z,LOW LOAD,20,LOW,0,1,0,N/A,True,3,0.0,0.0
