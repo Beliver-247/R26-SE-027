@@ -1,0 +1,15 @@
+[Unit]
+Description=JSON to SQLite Database Sync Service
+After=network.target carbon-service.service
+
+[Service]
+Type=simple
+User=hiran
+WorkingDirectory=/opt/energy-profiller-hiran
+ExecStart=/usr/bin/python3 /opt/energy-profiller-hiran/db_sync.py \
+          --watch-dir /opt/energy-profiller-hiran
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
