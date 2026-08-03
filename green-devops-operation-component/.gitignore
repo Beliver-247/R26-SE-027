@@ -6,6 +6,7 @@ __pycache__/
 .Python
 env/
 venv/
+.venv/
 ENV/
 build/
 develop-eggs/
@@ -44,6 +45,15 @@ logs/
 data/collected_metrics/*
 data/feature_store/*
 !data/public_datasets/
+
+# Excel workbooks and Office temp files
+*.xls
+*.xlsx
+*.xlsm
+*.xlsb
+*.xltx
+*.xltm
+~$*.xls*
 
 # Models
 models/trained/*
