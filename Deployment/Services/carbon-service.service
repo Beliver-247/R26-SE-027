@@ -1,0 +1,17 @@
+[Unit]
+Description=Carbon Calculation Service for Jenkins Deployments
+After=network.target
+After=multi-user.target
+
+[Service]
+Type=simple
+User=hiran
+WorkingDirectory=/opt/energy-profiller-hiran
+ExecStart=/usr/bin/python3 /opt/energy-profiller-hiran/carbon_service.py --watch-dir /opt/energy-profiller-hiran
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
