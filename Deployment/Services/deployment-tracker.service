@@ -1,0 +1,14 @@
+[Unit]
+Description=Green DevOps Deployment Tracker
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/energy-profiller-hiran
+ExecStart=/opt/energy-profiller-hiran/venv/bin/python3 /opt/energy-profiller-hiran/deployment_tracker.py --serve
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
