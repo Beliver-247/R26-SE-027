@@ -1,0 +1,14 @@
+# /etc/systemd/system/dashboard.service
+[Unit]
+Description=Deployment Energy Dashboard
+After=db-sync.service
+
+[Service]
+Type=simple
+User=hiran
+ExecStart=/opt/energy-profiller-hiran/venv/bin/python /opt/energy-profiller-hiran/dashboard.py \
+          --watch-dir /opt/energy-profiller-hiran --port 5050
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
