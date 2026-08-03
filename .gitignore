@@ -1,0 +1,61 @@
+# Local Python environments
+.venv/
+.venv-*/
+**/.venv/
+**/venv/
+**/env/
+
+# Python caches and test output
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+.coverage
+htmlcov/
+
+# Logs and temporary files
+logs/
+*.log
+*.tmp
+*.bak
+.cache/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Excel and Office temporary files
+**/*.xls
+**/*.xlsx
+**/*.xlsm
+**/*.xlsb
+**/*.xltx
+**/*.xltm
+**/~$*.xls*
+
+# Local duplicate project checkout; dev uses Operation/
+green-devops-operation-component/
+
+# Root-level generated data
+data/
+
+# Operation generated runtime/test artifacts
+Operation/tmp_dashboard_qa/
+Operation/data/csv_file_analysis.npz
+Operation/data/preprocessed/**/*.npy
+Operation/data/preprocessed/**/*.npz
+Operation/data/processed/*.csv
+Operation/data/runtime_metrics/*.csv
+Operation/data/predictions/*.csv
+Operation/data/demo/*.csv
+Operation/data/demo/*.json
+
+# Keep runtime source artifacts trackable when explicitly needed
+!Operation/data/preprocessed/balanced_dataset/scaler.pkl
+!Operation/models/trained/workload_predictor_balanced.pt
