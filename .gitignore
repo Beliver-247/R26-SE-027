@@ -1,0 +1,48 @@
+# Python environments and caches
+**/.venv/
+**/venv/
+**/env/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/*.py[cod]
+
+# Local logs and temporary files
+logs/
+*.log
+*.tmp
+*.bak
+.cache/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Spreadsheet exports and Office temporary files
+**/*.xls
+**/*.xlsx
+**/*.xlsm
+**/*.xlsb
+**/*.xltx
+**/*.xltm
+**/~$*.xls*
+
+# Generated ML/runtime artifacts that should not be pushed
+green-devops-operation-component/data/csv_file_analysis.npz
+green-devops-operation-component/data/preprocessed/**/*.npy
+green-devops-operation-component/data/preprocessed/**/*.npz
+green-devops-operation-component/data/processed/*.csv
+green-devops-operation-component/data/runtime_metrics/*.csv
+green-devops-operation-component/data/predictions/*.csv
+green-devops-operation-component/data/demo/*.csv
+green-devops-operation-component/data/demo/*.json
+
+# Keep required runtime source artifacts tracked when explicitly added
+!green-devops-operation-component/models/trained/workload_predictor_balanced.pt
+!green-devops-operation-component/data/preprocessed/balanced_dataset/scaler.pkl

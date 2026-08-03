@@ -34,6 +34,8 @@ wheels/
 
 # Testing
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 
@@ -44,6 +46,11 @@ logs/
 # Data
 data/collected_metrics/*
 data/feature_store/*
+data/runtime_metrics/*.csv
+data/predictions/*.csv
+data/demo/*.csv
+data/demo/*.json
+data/processed/*.csv
 !data/public_datasets/
 
 # Excel workbooks and Office temp files
@@ -56,14 +63,17 @@ data/feature_store/*
 ~$*.xls*
 
 # Large generated NumPy dataset arrays
+data/csv_file_analysis.npz
 data/preprocessed/**/*.npy
 data/preprocessed/**/*.npz
+!data/preprocessed/balanced_dataset/scaler.pkl
 
 # Models
 models/trained/*
 models/scalers/*
 models/metrics/*
 !models/trained/.gitkeep
+!models/trained/workload_predictor_balanced.pt
 !models/scalers/.gitkeep
 
 # Experiments
@@ -73,9 +83,6 @@ experiments/*
 # Environment
 .env
 .env.local
-
-# Docker
-.dockerignore
 
 # Terraform
 .terraform/
