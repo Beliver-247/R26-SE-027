@@ -9,13 +9,22 @@ import logging
 from typing import Dict, Any, Tuple
 from dataclasses import dataclass
 
-from job_prioritization_engine.config import (
-    MAX_ALREADY_DELAYED_SECONDS,
-    MIN_DEADLINE_BUFFER_SECONDS,
-    MAX_ACCEPTABLE_BACKLOG,
-    CRITICAL_BACKLOG_THRESHOLD,
-    ALLOW_MEDIUM_DELAY_IN_LOW_LOAD,
-)
+try:
+    from .config import (
+        MAX_ALREADY_DELAYED_SECONDS,
+        MIN_DEADLINE_BUFFER_SECONDS,
+        MAX_ACCEPTABLE_BACKLOG,
+        CRITICAL_BACKLOG_THRESHOLD,
+        ALLOW_MEDIUM_DELAY_IN_LOW_LOAD,
+    )
+except ImportError:
+    from job_prioritization_engine.config import (
+        MAX_ALREADY_DELAYED_SECONDS,
+        MIN_DEADLINE_BUFFER_SECONDS,
+        MAX_ACCEPTABLE_BACKLOG,
+        CRITICAL_BACKLOG_THRESHOLD,
+        ALLOW_MEDIUM_DELAY_IN_LOW_LOAD,
+    )
 
 logger = logging.getLogger(__name__)
 

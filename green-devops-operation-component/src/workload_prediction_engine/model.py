@@ -10,13 +10,22 @@ import torch
 import torch.nn as nn
 from typing import Tuple
 
-from config import (
-    INPUT_FEATURES,
-    LSTM_HIDDEN_SIZE_1,
-    LSTM_HIDDEN_SIZE_2,
-    DENSE_HIDDEN_SIZE,
-    DROPOUT_RATE
-)
+try:
+    from .config import (
+        INPUT_FEATURES,
+        LSTM_HIDDEN_SIZE_1,
+        LSTM_HIDDEN_SIZE_2,
+        DENSE_HIDDEN_SIZE,
+        DROPOUT_RATE
+    )
+except ImportError:
+    from config import (
+        INPUT_FEATURES,
+        LSTM_HIDDEN_SIZE_1,
+        LSTM_HIDDEN_SIZE_2,
+        DENSE_HIDDEN_SIZE,
+        DROPOUT_RATE
+    )
 
 
 class LSTMWorkloadPredictor(nn.Module):
@@ -157,9 +166,9 @@ class LSTMWorkloadPredictor(nn.Module):
         """Return human-readable model architecture."""
         summary = "\nLSTM Workload Predictor Architecture:\n"
         summary += f"  Input: (batch_size, 12 timesteps, 2 features)\n"
-        summary += f"  LSTM Layer 1: 2 → {LSTM_HIDDEN_SIZE_1} (dropout={DROPOUT_RATE})\n"
-        summary += f"  LSTM Layer 2: {LSTM_HIDDEN_SIZE_1} → {LSTM_HIDDEN_SIZE_2} (dropout={DROPOUT_RATE})\n"
-        summary += f"  Dense Layer: {LSTM_HIDDEN_SIZE_2} → {DENSE_HIDDEN_SIZE} (ReLU)\n"
-        summary += f"  Output Layer: {DENSE_HIDDEN_SIZE} → 1\n"
+        summary += f"  LSTM Layer 1: 2 -> {LSTM_HIDDEN_SIZE_1} (dropout={DROPOUT_RATE})\n"
+        summary += f"  LSTM Layer 2: {LSTM_HIDDEN_SIZE_1} -> {LSTM_HIDDEN_SIZE_2} (dropout={DROPOUT_RATE})\n"
+        summary += f"  Dense Layer: {LSTM_HIDDEN_SIZE_2} -> {DENSE_HIDDEN_SIZE} (ReLU)\n"
+        summary += f"  Output Layer: {DENSE_HIDDEN_SIZE} -> 1\n"
         summary += f"  Total Parameters: {self.count_parameters():,}\n"
         return summary

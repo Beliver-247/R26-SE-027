@@ -16,19 +16,34 @@ from datetime import datetime
 from typing import Optional, Tuple
 from pathlib import Path
 
-from metrics_collector import PrometheusMetricsCollector, MetricsCollectorFactory
-from runtime_store import RuntimeStore
-from mode_manager import ModeManager, ModeHistory
-from bootstrap import BootstrapFactory
-from predictor import WorkloadPredictor
-from output_contract import Engine1Output, create_engine1_output
-from config import (
-    MODEL_PATH,
-    SCALER_PATH,
-    MODEL_VERSION,
-    SEQUENCE_LENGTH,
-    PREDICTION_WINDOW_SECONDS
-)
+try:
+    from .metrics_collector import PrometheusMetricsCollector, MetricsCollectorFactory
+    from .runtime_store import RuntimeStore
+    from .mode_manager import ModeManager, ModeHistory
+    from .bootstrap import BootstrapFactory
+    from .predictor import WorkloadPredictor
+    from .output_contract import Engine1Output, create_engine1_output
+    from .config import (
+        MODEL_PATH,
+        SCALER_PATH,
+        MODEL_VERSION,
+        SEQUENCE_LENGTH,
+        PREDICTION_WINDOW_SECONDS
+    )
+except ImportError:
+    from metrics_collector import PrometheusMetricsCollector, MetricsCollectorFactory
+    from runtime_store import RuntimeStore
+    from mode_manager import ModeManager, ModeHistory
+    from bootstrap import BootstrapFactory
+    from predictor import WorkloadPredictor
+    from output_contract import Engine1Output, create_engine1_output
+    from config import (
+        MODEL_PATH,
+        SCALER_PATH,
+        MODEL_VERSION,
+        SEQUENCE_LENGTH,
+        PREDICTION_WINDOW_SECONDS
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -81,17 +96,14 @@ class LivePredictor:
         self.mode_history = ModeHistory()
         self.bootstrap = BootstrapFactory.create(bootstrap_strategy)
         
-        # Load predictor (skip model loading if in mock mode)
+        # Load predictor. Mock mode only affects metrics collection; inference stays real.
         self.use_mock = use_mock
         self.predictor = WorkloadPredictor(MODEL_PATH, SCALER_PATH)
-        
-        if not use_mock:
-            # Only load real model if not in mock mode
-            self.predictor.load_model()
-            self.predictor.load_scaler()
-        else:
-            # In mock mode, skip model loading
-            self.logger.info("Mock mode enabled - skipping model loading")
+        self.predictor.load_model()
+        self.predictor.load_scaler()
+
+        if use_mock:
+            self.logger.info("Mock metrics mode enabled - real model inference remains active")
         
         # Track current mode
         self.current_mode = None

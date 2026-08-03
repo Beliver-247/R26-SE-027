@@ -14,18 +14,32 @@ from pathlib import Path
 
 import numpy as np
 
-from predictor import WorkloadPredictor
-from runtime_adapter import RuntimeAdapter
-from output_contract import Engine1Output, Engine1Request, create_engine1_output
-from retraining import RetrainingManager
-from config import (
-    MODEL_PATH,
-    SCALER_PATH,
-    DATA_SOURCE_COLD_START,
-    DATA_SOURCE_RUNTIME,
-    MODEL_VERSION,
-    SEQUENCE_LENGTH
-)
+try:
+    from .predictor import WorkloadPredictor
+    from .runtime_adapter import RuntimeAdapter
+    from .output_contract import Engine1Output, Engine1Request, create_engine1_output
+    from .retraining import RetrainingManager
+    from .config import (
+        MODEL_PATH,
+        SCALER_PATH,
+        DATA_SOURCE_COLD_START,
+        DATA_SOURCE_RUNTIME,
+        MODEL_VERSION,
+        SEQUENCE_LENGTH
+    )
+except ImportError:
+    from predictor import WorkloadPredictor
+    from runtime_adapter import RuntimeAdapter
+    from output_contract import Engine1Output, Engine1Request, create_engine1_output
+    from retraining import RetrainingManager
+    from config import (
+        MODEL_PATH,
+        SCALER_PATH,
+        DATA_SOURCE_COLD_START,
+        DATA_SOURCE_RUNTIME,
+        MODEL_VERSION,
+        SEQUENCE_LENGTH
+    )
 
 logger = logging.getLogger(__name__)
 

@@ -162,6 +162,7 @@ class PolicyRules:
         
         # Determine action based on current state
         if context.current_pods < context.engine2_raw_required_pods:
+            final_pods = context.engine2_raw_required_pods
             action = "scale_up"
             reason = (
                 f"{policy.reason_prefix}. Current pods ({context.current_pods}) < "

@@ -6,7 +6,10 @@ Calculates energy usage based on pod count and time window.
 
 import logging
 from typing import Dict, Any
-from carbon_engine.config import ENERGY_PER_POD_KWH_PER_HOUR
+try:
+    from .config import ENERGY_PER_POD_KWH_PER_HOUR
+except ImportError:
+    from carbon_engine.config import ENERGY_PER_POD_KWH_PER_HOUR
 
 logger = logging.getLogger(__name__)
 

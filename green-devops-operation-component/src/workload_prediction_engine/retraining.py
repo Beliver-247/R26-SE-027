@@ -16,16 +16,28 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
 
-from model import LSTMWorkloadPredictor
-from config import (
-    RETRAINING_BATCH_SIZE,
-    RETRAINING_EPOCHS,
-    RETRAINING_LEARNING_RATE,
-    RETRAINING_CHECKPOINT_INTERVAL,
-    RETRAINING_VAL_SPLIT,
-    DEVICE,
-    MODEL_VERSION
-)
+try:
+    from .model import LSTMWorkloadPredictor
+    from .config import (
+        RETRAINING_BATCH_SIZE,
+        RETRAINING_EPOCHS,
+        RETRAINING_LEARNING_RATE,
+        RETRAINING_CHECKPOINT_INTERVAL,
+        RETRAINING_VAL_SPLIT,
+        DEVICE,
+        MODEL_VERSION
+    )
+except ImportError:
+    from model import LSTMWorkloadPredictor
+    from config import (
+        RETRAINING_BATCH_SIZE,
+        RETRAINING_EPOCHS,
+        RETRAINING_LEARNING_RATE,
+        RETRAINING_CHECKPOINT_INTERVAL,
+        RETRAINING_VAL_SPLIT,
+        DEVICE,
+        MODEL_VERSION
+    )
 
 logger = logging.getLogger(__name__)
 

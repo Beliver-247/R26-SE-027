@@ -6,15 +6,26 @@ Evaluates scenarios and recommends optimal action based on carbon emissions.
 
 import logging
 from typing import Dict, Any, List, Optional
-from carbon_engine.carbon_calculator import CarbonCalculator
-from carbon_engine.scenario_simulator import Scenario
-from carbon_engine.config import (
-    CARBON_SAVING_THRESHOLD_PERCENT,
-    DECISION_SCALE_UP,
-    DECISION_DELAY_JOBS,
-    DECISION_HYBRID,
-    DECISION_NO_ACTION
-)
+try:
+    from .carbon_calculator import CarbonCalculator
+    from .scenario_simulator import Scenario
+    from .config import (
+        CARBON_SAVING_THRESHOLD_PERCENT,
+        DECISION_SCALE_UP,
+        DECISION_DELAY_JOBS,
+        DECISION_HYBRID,
+        DECISION_NO_ACTION
+    )
+except ImportError:
+    from carbon_engine.carbon_calculator import CarbonCalculator
+    from carbon_engine.scenario_simulator import Scenario
+    from carbon_engine.config import (
+        CARBON_SAVING_THRESHOLD_PERCENT,
+        DECISION_SCALE_UP,
+        DECISION_DELAY_JOBS,
+        DECISION_HYBRID,
+        DECISION_NO_ACTION
+    )
 
 logger = logging.getLogger(__name__)
 

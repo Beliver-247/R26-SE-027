@@ -13,13 +13,22 @@ from typing import List, Tuple, Optional
 from datetime import datetime, timedelta
 import pandas as pd
 
-from config import (
-    SEQUENCE_LENGTH,
-    PREDICTION_WINDOW_SECONDS,
-    PROMETHEUS_STEP_SECONDS,
-    MAX_MISSING_DATAPOINTS,
-    INTERPOLATION_METHOD
-)
+try:
+    from .config import (
+        SEQUENCE_LENGTH,
+        PREDICTION_WINDOW_SECONDS,
+        PROMETHEUS_STEP_SECONDS,
+        MAX_MISSING_DATAPOINTS,
+        INTERPOLATION_METHOD
+    )
+except ImportError:
+    from config import (
+        SEQUENCE_LENGTH,
+        PREDICTION_WINDOW_SECONDS,
+        PROMETHEUS_STEP_SECONDS,
+        MAX_MISSING_DATAPOINTS,
+        INTERPOLATION_METHOD
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -251,11 +260,11 @@ class RuntimeAdapter:
         df = df.sort_index()
         
         # Resample to 30-second intervals
-        df_resampled = df.resample(f'{self.prediction_window_seconds}S').mean()
+        df_resampled = df.resample(f'{self.prediction_window_seconds}s').mean()
         
         # Forward fill to handle missing values
-        df_resampled = df_resampled.fillna(method='ffill')
-        df_resampled = df_resampled.fillna(method='bfill')
+        df_resampled = df_resampled.ffill()
+        df_resampled = df_resampled.bfill()
         
         # Reset index
         df_resampled = df_resampled.reset_index()

@@ -1,2 +1,7 @@
 timestamp,predicted_cpu,predicted_load_level,recommended_pods,data_source
 1000,45.50,NORMAL,2,runtime
+2026-08-03T07:10:39.307099Z,54.14,NORMAL,2,cold_start
+2026-08-03T07:10:39.338955Z,34.63,NORMAL,1,cold_start
+2026-08-03T07:10:39.370664Z,49.47,NORMAL,2,cold_start
+2026-08-03T07:10:39.396955Z,62.54,NORMAL,2,cold_start
+2026-08-03T07:10:39.418407Z,39.62,NORMAL,1,cold_start

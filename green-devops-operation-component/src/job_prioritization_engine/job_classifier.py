@@ -9,13 +9,22 @@ import logging
 from typing import Dict, Any, List
 from dataclasses import dataclass
 
-from job_prioritization_engine.config import (
-    HIGH_PRIORITY_TYPES,
-    MEDIUM_PRIORITY_TYPES,
-    LOW_PRIORITY_TYPES,
-    ALWAYS_HIGH_PRIORITY_TYPES,
-    ALWAYS_LOW_PRIORITY_TYPES,
-)
+try:
+    from .config import (
+        HIGH_PRIORITY_TYPES,
+        MEDIUM_PRIORITY_TYPES,
+        LOW_PRIORITY_TYPES,
+        ALWAYS_HIGH_PRIORITY_TYPES,
+        ALWAYS_LOW_PRIORITY_TYPES,
+    )
+except ImportError:
+    from job_prioritization_engine.config import (
+        HIGH_PRIORITY_TYPES,
+        MEDIUM_PRIORITY_TYPES,
+        LOW_PRIORITY_TYPES,
+        ALWAYS_HIGH_PRIORITY_TYPES,
+        ALWAYS_LOW_PRIORITY_TYPES,
+    )
 
 logger = logging.getLogger(__name__)
 

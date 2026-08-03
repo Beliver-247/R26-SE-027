@@ -1,0 +1,211 @@
+Full System QA Error Log
+Audit date: 2026-08-03
+
+1. Dependency install blocker
+Command:
+  .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Error:
+  ERROR: Invalid requirement: '"""Python Dependencies"""'
+Cause:
+  `requirements.txt` line 1 was a Python docstring, not a pip comment.
+Fix applied:
+  Changed line 1 to `# Python Dependencies`.
+
+2. Full requirements install timeout
+Command:
+  .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Error:
+  Command timed out after 15 minutes.
+Impact:
+  Full requirements file was not proven installable end to end in one run.
+Workaround:
+  Installed required runtime/test packages in chunks; `pip check` passed.
+
+3. Package import failures
+Commands:
+  Import matrix for workload/carbon/job modules.
+Error:
+  Imports such as `from predictor import ...` and `from carbon_engine.config import ...` failed when modules were imported through the `src.*` package path.
+Fix applied:
+  Added relative imports with fallback in workload, carbon, and job engine modules.
+
+4. Pandas 3 runtime adapter frequency error
+Command:
+  Engine 1 direct runtime adapter test.
+Error:
+  `Invalid frequency: 30S. Did you mean s?`
+Fix applied:
+  Changed resample frequency from uppercase `S` to lowercase `s`.
+
+5. Pandas 3 `fillna(method=...)` error
+Command:
+  Engine 1 direct runtime adapter test.
+Error:
+  `NDFrame.fillna() got an unexpected keyword argument 'method'`
+Fix applied:
+  Replaced `fillna(method='ffill')` and `fillna(method='bfill')` with `.ffill()` and `.bfill()`.
+
+6. Mock API mode originally skipped real LSTM model loading
+Command:
+  API startup and code inspection.
+Problem:
+  `LivePredictor` skipped model/scaler loading when `--mock` was used.
+Impact:
+  Required API test command would not use the real LSTM model.
+Fix applied:
+  Mock mode now affects metrics input only; real model/scaler are loaded.
+
+7. Windows Unicode logging/output errors
+Commands:
+  API startup, `test_engine2_upgrade.py`, `test_engine3_implementation.py`, `decision_layer_validation.py`, `high_load_policy_fix_validation.py`, `verify_unified_dashboard.py`
+Errors:
+  `UnicodeEncodeError: 'charmap' codec can't encode character ...`
+Cause:
+  Windows console encoding was cp1252 and scripts/logging used checkmarks, crosses, and box-drawing characters.
+Fix applied:
+  Replaced Unicode arrows in core model/predictor logs. Reran standalone scripts with `PYTHONIOENCODING=utf-8`.
+Remaining:
+  Several validation scripts still require UTF-8 environment or ASCII output changes.
+
+8. Runtime normalization warning
+Command:
+  Engine 1 direct runtime sequence test.
+Error:
+  `CPU normalization failed: X has 1 features, but MinMaxScaler is expecting 2 features as input.`
+  `Memory normalization failed: X has 1 features, but MinMaxScaler is expecting 2 features as input.`
+Cause:
+  RuntimeAdapter was passed a two-feature scaler where it expects independent one-feature scalers.
+Impact:
+  Runtime sequence may fall back to raw, unnormalized values.
+Status:
+  Not fixed; needs a preprocessing correction.
+
+9. Decision layer ignored Engine 2 selected pod count
+Command:
+  Real Engine 1/2/3 composed decision scenarios.
+Problem:
+  Decision layer fell back to `optimized_scenario.required_pods` and ignored top-level `optimized_required_pods`.
+Impact:
+  Final action could differ from Engine 2's selected recommendation.
+Fix applied:
+  `_extract_engine2_data` now reads top-level `optimized_required_pods` first.
+
+10. Normal-load scale-up final pod bug
+Command:
+  `scripts/run_demo_loop.py --api-url http://localhost:5002 --interval 5 --initial-pods 1 --once`
+Error:
+  Demo history showed `scale_up` while `final_required_pods` stayed 1 although raw required pods were 2.
+Fix applied:
+  Normal-load scale-up branch now sets `final_pods = context.engine2_raw_required_pods`.
+
+11. Prometheus unavailable
+Commands:
+  `Invoke-WebRequest http://localhost:9090/-/healthy`
+  `Invoke-WebRequest http://localhost:9090/api/v1/targets`
+Error:
+  Unable to connect to the remote server.
+Impact:
+  Real Prometheus runtime metrics could not be tested.
+Status:
+  Environment blocker.
+
+12. Prometheus CPU query incorrect
+File:
+  `src/workload_prediction_engine/metrics_collector.py`
+Problem:
+  Uses raw `container_cpu_usage_seconds_total{pod="..."}` cumulative counter.
+Impact:
+  CPU data is not suitable for CPU percent LSTM input.
+Recommended fix:
+  Use a rate query such as `sum(rate(container_cpu_usage_seconds_total{pod=~"...",container!="POD",image!=""}[1m])) * 100`, then normalize to the training CPU percentage basis.
+
+13. Docker daemon unavailable
+Commands:
+  `docker info --format '{{json .ServerVersion}}'`
+  `docker build -f infrastructure/docker/Dockerfile -t green-devops-operation-qa:latest .`
+Error:
+  Docker Desktop Linux engine pipe missing.
+Impact:
+  Image build and workload container run could not be tested.
+Status:
+  Environment blocker.
+
+14. Dockerfile static failure
+File:
+  `infrastructure/docker/Dockerfile`
+Problem:
+  CMD references missing `src.api.main:app`; active API is launched by `scripts/run_live_api.py`.
+Impact:
+  Container would not start even if the image built.
+Status:
+  Not fixed; requires container entrypoint redesign.
+
+15. K3s and Kubernetes API unavailable
+Commands:
+  `k3s --version`
+  `kubectl get nodes -o wide`
+  `kubectl get deployment -A`
+  `kubectl get pods -A`
+Errors:
+  `k3s` not recognized; kubectl connection refused on `localhost:8080`.
+Impact:
+  K3s cluster, deployment, service, pod rollout, and live scaling could not be tested.
+Status:
+  Environment blocker.
+
+16. Kubernetes automatic scaling missing
+Command:
+  `Test-Path src/kubernetes_integration`
+Result:
+  `False`
+Impact:
+  Project currently recommends scaling but does not apply it to Kubernetes.
+Status:
+  NOT IMPLEMENTED.
+
+17. Stale validation scripts
+Files:
+  `scripts/test_full_system.py`, `qa_simple_test.py`, `comprehensive_validation.py`, `full_system_validation.py`, `qa_full_validation.py`, `demo_integration_test.py`, `test_demo_system.py`, `test_final_validation.py`, `test_realtime_autorefresh.py`, `test_session_state_fix.py`, `test_carbon_endpoint.py`
+Problem:
+  Hardcoded API URLs use `localhost:5000` or `localhost:8000` while active QA API ran on `localhost:5002`.
+Impact:
+  These tests fail or report contradictory pass summaries even when the active API is running.
+Status:
+  Not fixed; should be parameterized.
+
+18. Empty pytest suite
+Command:
+  `.venv\Scripts\python.exe -m pytest`
+Result:
+  Collected 0 tests and returned failure.
+Impact:
+  CI-style pytest coverage is currently absent.
+Status:
+  Needs real tests under `tests/`.
+
+19. Engine 1 comprehensive test failure
+Command:
+  `.venv\Scripts\python.exe scripts\test_engine1.py`
+Result:
+  Script summary: 30/32 passed, TEST STATUS: FAIL.
+Failures:
+  `X_test` max is 1.0124, outside [0,1].
+  First 100 predictions had only LOW load labels.
+Impact:
+  Dataset/preprocessing validation is partial.
+
+20. Dashboard technical AppTest timeout
+Command:
+  Streamlit AppTest for `dashboard/unified_app.py` Level 2.
+Error:
+  Timed out at 20s and 90s.
+Impact:
+  Level 2 was not fully proven via AppTest, although live Streamlit server and API helper checks passed.
+
+21. Process shutdown command issue
+Command:
+  Initial Stop-Process filter for API/dashboard processes.
+Problem:
+  Filter matched the command line containing the matching strings and stopped the current shell early.
+Follow-up:
+  Verified ports 5002 and 8503 no longer had listeners and HTTP checks timed out after shutdown.

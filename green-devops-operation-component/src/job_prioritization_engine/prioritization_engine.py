@@ -9,9 +9,14 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
-from job_prioritization_engine.job_classifier import JobClassifier, ClassifiedJob
-from job_prioritization_engine.delay_eligibility import DelayEligibilityChecker, DelayEligibility
-from job_prioritization_engine.workload_estimator import WorkloadEstimator, WorkloadReductionEstimate
+try:
+    from .job_classifier import JobClassifier, ClassifiedJob
+    from .delay_eligibility import DelayEligibilityChecker, DelayEligibility
+    from .workload_estimator import WorkloadEstimator, WorkloadReductionEstimate
+except ImportError:
+    from job_prioritization_engine.job_classifier import JobClassifier, ClassifiedJob
+    from job_prioritization_engine.delay_eligibility import DelayEligibilityChecker, DelayEligibility
+    from job_prioritization_engine.workload_estimator import WorkloadEstimator, WorkloadReductionEstimate
 
 logger = logging.getLogger(__name__)
 

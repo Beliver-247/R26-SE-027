@@ -19,6 +19,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import json
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
 import time
@@ -30,7 +31,7 @@ from streamlit_autorefresh import st_autorefresh
 # Configuration
 # ============================================================================
 
-API_BASE_URL = "http://localhost:5050"
+API_BASE_URL = os.getenv("GREEN_DEVOPS_API_URL", "http://localhost:5002")
 DATA_DIR = Path("data")
 PREDICTIONS_DIR = DATA_DIR / "predictions"
 RUNTIME_METRICS_DIR = DATA_DIR / "runtime_metrics"

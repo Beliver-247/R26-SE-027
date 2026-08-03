@@ -15,21 +15,38 @@ from datetime import datetime
 import torch
 import torch.nn as nn
 
-from model import LSTMWorkloadPredictor
-from config import (
-    DEVICE,
-    LOAD_LEVEL_THRESHOLDS,
-    TARGET_CPU_PER_POD,
-    TARGET_UTILIZATION,
-    MIN_PODS,
-    MAX_PODS,
-    MODEL_PATH,
-    SCALER_PATH,
-    MODEL_VERSION,
-    PREDICTION_WINDOW_SECONDS,
-    SEQUENCE_LENGTH
-)
-from output_contract import Engine1Output, create_engine1_output
+try:
+    from .model import LSTMWorkloadPredictor
+    from .config import (
+        DEVICE,
+        LOAD_LEVEL_THRESHOLDS,
+        TARGET_CPU_PER_POD,
+        TARGET_UTILIZATION,
+        MIN_PODS,
+        MAX_PODS,
+        MODEL_PATH,
+        SCALER_PATH,
+        MODEL_VERSION,
+        PREDICTION_WINDOW_SECONDS,
+        SEQUENCE_LENGTH
+    )
+    from .output_contract import Engine1Output, create_engine1_output
+except ImportError:
+    from model import LSTMWorkloadPredictor
+    from config import (
+        DEVICE,
+        LOAD_LEVEL_THRESHOLDS,
+        TARGET_CPU_PER_POD,
+        TARGET_UTILIZATION,
+        MIN_PODS,
+        MAX_PODS,
+        MODEL_PATH,
+        SCALER_PATH,
+        MODEL_VERSION,
+        PREDICTION_WINDOW_SECONDS,
+        SEQUENCE_LENGTH
+    )
+    from output_contract import Engine1Output, create_engine1_output
 
 # Configure logging
 logging.basicConfig(
@@ -362,7 +379,7 @@ class WorkloadPredictor:
             # Clip to valid CPU range
             original_value = np.clip(original_value, 0, 100)
             
-            logger.debug(f"Denormalization: {normalized_value:.6f} → {original_value:.2f}%")
+            logger.debug(f"Denormalization: {normalized_value:.6f} -> {original_value:.2f}%")
             
             return float(original_value)
             

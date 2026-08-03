@@ -21,11 +21,18 @@ Example:
     "scale_up"
 """
 
-from carbon_engine.carbon_engine import CarbonEmissionEngine, run_carbon_engine
-from carbon_engine.energy_model import EnergyModel
-from carbon_engine.carbon_calculator import CarbonCalculator
-from carbon_engine.scenario_simulator import ScenarioSimulator, Scenario
-from carbon_engine.decision_engine import DecisionEngine
+try:
+    from .carbon_engine import CarbonEmissionEngine, run_carbon_engine
+    from .energy_model import EnergyModel
+    from .carbon_calculator import CarbonCalculator
+    from .scenario_simulator import ScenarioSimulator, Scenario
+    from .decision_engine import DecisionEngine
+except ImportError:
+    from carbon_engine.carbon_engine import CarbonEmissionEngine, run_carbon_engine
+    from carbon_engine.energy_model import EnergyModel
+    from carbon_engine.carbon_calculator import CarbonCalculator
+    from carbon_engine.scenario_simulator import ScenarioSimulator, Scenario
+    from carbon_engine.decision_engine import DecisionEngine
 
 __all__ = [
     "CarbonEmissionEngine",

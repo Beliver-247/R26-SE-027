@@ -8,11 +8,18 @@ import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from carbon_engine.energy_model import EnergyModel
-from carbon_engine.carbon_calculator import CarbonCalculator
-from carbon_engine.scenario_simulator import ScenarioSimulator
-from carbon_engine.decision_engine import DecisionEngine
-from carbon_engine.config import LOG_LEVEL, ENABLE_DETAILED_LOGGING
+try:
+    from .energy_model import EnergyModel
+    from .carbon_calculator import CarbonCalculator
+    from .scenario_simulator import ScenarioSimulator
+    from .decision_engine import DecisionEngine
+    from .config import LOG_LEVEL, ENABLE_DETAILED_LOGGING
+except ImportError:
+    from carbon_engine.energy_model import EnergyModel
+    from carbon_engine.carbon_calculator import CarbonCalculator
+    from carbon_engine.scenario_simulator import ScenarioSimulator
+    from carbon_engine.decision_engine import DecisionEngine
+    from carbon_engine.config import LOG_LEVEL, ENABLE_DETAILED_LOGGING
 
 logger = logging.getLogger(__name__)
 

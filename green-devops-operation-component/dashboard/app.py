@@ -13,6 +13,7 @@ Usage:
 import streamlit as st
 import requests
 import json
+import os
 from datetime import datetime
 import time
 from collections import deque
@@ -33,7 +34,7 @@ from demo_adapter import (
 # Configuration
 # ============================================================================
 
-API_BASE_URL = "http://localhost:5050"
+API_BASE_URL = os.getenv("GREEN_DEVOPS_API_URL", "http://localhost:5002")
 API_HEALTH_ENDPOINT = f"{API_BASE_URL}/health"
 API_PREDICT_ENDPOINT = f"{API_BASE_URL}/predict"
 REFRESH_INTERVAL = 7  # seconds

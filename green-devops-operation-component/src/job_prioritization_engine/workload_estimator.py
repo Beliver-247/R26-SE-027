@@ -8,12 +8,20 @@ import logging
 from typing import Dict, Any, List, Tuple
 from dataclasses import dataclass
 
-from job_prioritization_engine.config import (
-    DEFAULT_JOB_CPU_ESTIMATE,
-    WORKLOAD_REDUCTION_SAFETY_MARGIN,
-    MAX_INITIAL_DELAY_PERCENT,
-    MIN_MEANINGFUL_DELAY_REDUCTION,
-)
+try:
+    from .config import (
+        DEFAULT_JOB_CPU_ESTIMATE,
+        WORKLOAD_REDUCTION_SAFETY_MARGIN,
+        MAX_INITIAL_DELAY_PERCENT,
+        MIN_MEANINGFUL_DELAY_REDUCTION,
+    )
+except ImportError:
+    from job_prioritization_engine.config import (
+        DEFAULT_JOB_CPU_ESTIMATE,
+        WORKLOAD_REDUCTION_SAFETY_MARGIN,
+        MAX_INITIAL_DELAY_PERCENT,
+        MIN_MEANINGFUL_DELAY_REDUCTION,
+    )
 
 logger = logging.getLogger(__name__)
 

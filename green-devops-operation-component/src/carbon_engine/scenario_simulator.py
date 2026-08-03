@@ -8,14 +8,24 @@ import logging
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
-from carbon_engine.energy_model import EnergyModel
-from carbon_engine.carbon_calculator import CarbonCalculator
-from carbon_engine.config import (
-    MIN_REQUIRED_PODS,
-    MAX_PODS,
-    MAX_ALLOWED_REDUCTION_PERCENT,
-    MIN_MEANINGFUL_REDUCTION_PERCENT
-)
+try:
+    from .energy_model import EnergyModel
+    from .carbon_calculator import CarbonCalculator
+    from .config import (
+        MIN_REQUIRED_PODS,
+        MAX_PODS,
+        MAX_ALLOWED_REDUCTION_PERCENT,
+        MIN_MEANINGFUL_REDUCTION_PERCENT
+    )
+except ImportError:
+    from carbon_engine.energy_model import EnergyModel
+    from carbon_engine.carbon_calculator import CarbonCalculator
+    from carbon_engine.config import (
+        MIN_REQUIRED_PODS,
+        MAX_PODS,
+        MAX_ALLOWED_REDUCTION_PERCENT,
+        MIN_MEANINGFUL_REDUCTION_PERCENT
+    )
 
 logger = logging.getLogger(__name__)
 

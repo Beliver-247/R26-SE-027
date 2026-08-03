@@ -1,0 +1,269 @@
+{
+  "audit": {
+    "date": "2026-08-03",
+    "workspace": "d:\\Research\\Operation\\green-devops-operation-component",
+    "branch": "qa-full-system-audit-20260803",
+    "python_venv": "Python 3.12.10",
+    "default_python": "Python 3.14.2",
+    "overall_completion_percentage": 68
+  },
+  "environment": {
+    "virtualenv_created": true,
+    "dependency_install": "partial",
+    "pip_check": "pass",
+    "key_versions": {
+      "torch": "2.13.0+cpu",
+      "numpy": "2.5.1",
+      "pandas": "3.0.5",
+      "scikit_learn": "1.9.0",
+      "fastapi": "0.141.1",
+      "uvicorn": "0.52.1",
+      "requests": "2.32.5",
+      "streamlit": "1.60.0",
+      "plotly": "6.9.0",
+      "kubernetes": "36.0.3",
+      "prometheus_client": "0.26.0"
+    }
+  },
+  "paths": {
+    "required_paths": {
+      "models/trained/workload_predictor_balanced.pt": true,
+      "data/preprocessed/balanced_dataset/scaler.pkl": true,
+      "data/preprocessed/balanced_dataset/X_train.npy": true,
+      "data/preprocessed/balanced_dataset/y_train.npy": true,
+      "data/preprocessed/balanced_dataset/X_test.npy": true,
+      "data/preprocessed/balanced_dataset/y_test.npy": true,
+      "scripts/run_live_api.py": true,
+      "scripts/run_demo_loop.py": true,
+      "dashboard/unified_app.py": true,
+      "src/workload_prediction_engine": true,
+      "src/carbon_engine": true,
+      "src/job_prioritization_engine": true,
+      "src/decision_layer": true
+    },
+    "missing_expected_paths": [
+      "src/kubernetes_integration"
+    ]
+  },
+  "dataset": {
+    "raw_folder": "data/public_datasets/fastStorage/2013-8/",
+    "raw_csv_count": 1250,
+    "preprocessed_folder": "data/preprocessed/balanced_dataset/",
+    "x_train_shape": [6056116, 12, 2],
+    "y_train_shape": [6056116],
+    "x_test_shape": [1474607, 12, 2],
+    "y_test_shape": [1474607],
+    "x_test_min": 0.0,
+    "x_test_max": 1.012436032295227,
+    "features": ["CPU usage [%]", "Memory usage [KB]"],
+    "label": "next CPU usage percent",
+    "sequence_length": 12,
+    "sampling_interval_seconds": 30,
+    "prediction_horizon_seconds": 30,
+    "status": "PARTIAL"
+  },
+  "model": {
+    "model_path": "models/trained/workload_predictor_balanced.pt",
+    "scaler_path": "data/preprocessed/balanced_dataset/scaler.pkl",
+    "loaded": true,
+    "scaler_loaded": true,
+    "scaler_warning": "MinMaxScaler pickled with sklearn 1.8.0 loaded with sklearn 1.9.0",
+    "architecture": {
+      "input_features": 2,
+      "sequence_length": 12,
+      "lstm_hidden_1": 64,
+      "lstm_hidden_2": 32,
+      "dense_hidden": 16,
+      "output_features": 1,
+      "parameters": 30497
+    },
+    "direct_inference": {
+      "input_shape": [1, 12, 2],
+      "output_shape": [1, 1],
+      "finite": true,
+      "sample_output": -0.0013109
+    },
+    "validation_metric_evidence": {
+      "source": "VALIDATION_REPORT.md",
+      "r2": 0.946,
+      "mape_percent": 3.28,
+      "recalculated": false
+    },
+    "status": "PASS"
+  },
+  "engine1_scenarios": [
+    {
+      "scenario": "low",
+      "predicted_cpu": 13.6052,
+      "load_level": "LOW",
+      "recommended_pods": 1,
+      "model_used": "workload_predictor_balanced.pt",
+      "status": "PASS"
+    },
+    {
+      "scenario": "normal",
+      "predicted_cpu": 54.4323,
+      "load_level": "NORMAL",
+      "recommended_pods": 2,
+      "model_used": "workload_predictor_balanced.pt",
+      "status": "PASS"
+    },
+    {
+      "scenario": "high",
+      "predicted_cpu": 89.6621,
+      "load_level": "HIGH",
+      "recommended_pods": 3,
+      "model_used": "workload_predictor_balanced.pt",
+      "status": "PASS"
+    }
+  ],
+  "api": {
+    "command": ".\\.venv\\Scripts\\python.exe scripts/run_live_api.py --system-id green-devops-test --host 0.0.0.0 --port 5002 --interval 5 --mock --log-level INFO",
+    "port": 5002,
+    "mode": "mock metrics input with real LSTM/carbon/job/decision logic",
+    "endpoints": [
+      {"method": "GET", "endpoint": "/health", "http_status": 200, "response_valid": true, "real_component_used": "LivePredictor status", "status": "PASS"},
+      {"method": "GET", "endpoint": "/predict", "http_status": 200, "response_valid": true, "real_component_used": "LSTM predictor", "status": "PASS"},
+      {"method": "GET", "endpoint": "/predict/run", "http_status": 200, "response_valid": true, "real_component_used": "LSTM predictor", "status": "PASS"},
+      {"method": "GET", "endpoint": "/status", "http_status": 200, "response_valid": true, "real_component_used": "API runtime state", "status": "PASS"},
+      {"method": "GET", "endpoint": "/metrics/green-devops-test", "http_status": 200, "response_valid": true, "real_component_used": "runtime metrics storage", "status": "PASS"},
+      {"method": "POST", "endpoint": "/predict/manual", "http_status": 200, "response_valid": true, "real_component_used": "LSTM predictor", "status": "PARTIAL"},
+      {"method": "POST", "endpoint": "/carbon/evaluate", "http_status": 200, "response_valid": true, "real_component_used": "CarbonEmissionEngine", "status": "PASS"},
+      {"method": "POST", "endpoint": "/jobs/evaluate", "http_status": 200, "response_valid": true, "real_component_used": "JobPrioritizationEngine", "status": "PASS"},
+      {"method": "POST", "endpoint": "/decision/evaluate", "http_status": 200, "response_valid": true, "real_component_used": "DecisionOrchestrator", "status": "PASS"}
+    ],
+    "status": "PASS"
+  },
+  "carbon_engine": {
+    "formulas": {
+      "energy_kwh": "pod_count * 0.5 * (time_window_seconds / 3600)",
+      "carbon_gco2": "energy_kwh * 400.0",
+      "optimized_pods": "ceil(raw_pods * (1 - workload_reduction_percent)), min 1"
+    },
+    "scenarios": [
+      {"scenario": "low_no_delay", "raw_pods": 1, "optimized_pods": 1, "raw_carbon_gco2": 1.67, "optimized_carbon_gco2": null, "saving_gco2": 0.0, "action": "no_action", "status": "PASS"},
+      {"scenario": "normal_delayable", "raw_pods": 3, "optimized_pods": 1, "raw_carbon_gco2": 5.0, "optimized_carbon_gco2": 3.33, "saving_gco2": 3.33, "action": "hybrid", "status": "PARTIAL"},
+      {"scenario": "high_sla", "raw_pods": 3, "optimized_pods": 3, "raw_carbon_gco2": 5.0, "optimized_carbon_gco2": 3.33, "saving_gco2": 0.0, "action": "scale_up", "status": "PASS"}
+    ],
+    "status": "PASS"
+  },
+  "job_engine": {
+    "policy_checks": {
+      "high_priority_never_delay": true,
+      "medium_delay_only_when_policy_and_sla_permit": true,
+      "low_delay_when_eligible": true,
+      "deadline_check": true,
+      "already_delayed_check": true,
+      "backlog_check": true,
+      "critical_backlog_prevents_unsafe_delays": true
+    },
+    "status": "PASS"
+  },
+  "decision_engine": {
+    "scenarios": [
+      {"scenario": "high_load", "final_action": "scale_up", "final_pods": 3, "sla_preserved": true, "status": "PASS"},
+      {"scenario": "low_load", "final_action": "scale_down", "final_pods": 1, "sla_preserved": true, "status": "PASS"},
+      {"scenario": "high_carbon_delayable_jobs", "final_action": "hybrid", "final_pods": 1, "sla_preserved": true, "status": "PASS"},
+      {"scenario": "normal_stable_load", "final_action": "scale_down", "final_pods": 1, "sla_preserved": true, "status": "PARTIAL"}
+    ],
+    "status": "PARTIAL"
+  },
+  "demo_loop": {
+    "latest_json": "data/demo/latest.json",
+    "history_csv": "data/demo/history.csv",
+    "cycles_observed": [
+      {"cycle": 1, "cpu": 23.3270, "load": "LOW", "jobs_delayed": 2, "carbon_saving": 0.0, "current_pods": 1, "final_pods": 1, "decision": "no_action", "status": "PASS"},
+      {"cycle": 2, "cpu": 37.6735, "load": "NORMAL", "jobs_delayed": 0, "carbon_saving": 0.0, "current_pods": 1, "final_pods": 1, "decision": "no_action", "status": "PASS"},
+      {"cycle": 3, "cpu": 52.1676, "load": "NORMAL", "jobs_delayed": 3, "carbon_saving": 1.66, "current_pods": 1, "final_pods": 2, "decision": "scale_up", "status": "PASS"},
+      {"cycle": "stateful_1", "cpu": 55.9861, "load": "NORMAL", "jobs_delayed": 3, "carbon_saving": 1.66, "current_pods": 1, "final_pods": 2, "decision": "scale_up", "status": "PASS"},
+      {"cycle": "stateful_2", "cpu": 57.0042, "load": "NORMAL", "jobs_delayed": 3, "carbon_saving": 1.66, "current_pods": 2, "final_pods": 1, "decision": "hybrid", "status": "PASS"},
+      {"cycle": "stateful_3", "cpu": 72.9083, "load": "HIGH", "jobs_delayed": 0, "carbon_saving": 0.0, "current_pods": 1, "final_pods": 2, "decision": "scale_up", "status": "PASS"}
+    ],
+    "status": "PARTIAL",
+    "limitation": "Uses simulated/mock metrics input and does not apply Kubernetes scaling"
+  },
+  "dashboard": {
+    "streamlit_started": true,
+    "port": 8503,
+    "http_status": 200,
+    "level1": "PASS",
+    "level2": "PARTIAL",
+    "app_test_overview_exceptions": 0,
+    "technical_app_test": "timed out",
+    "api_helpers": "PASS",
+    "status": "PARTIAL"
+  },
+  "prometheus": {
+    "available": false,
+    "health_endpoint": "unable to connect",
+    "target_endpoint": "unable to connect",
+    "cpu_query_current": "container_cpu_usage_seconds_total{pod=\"{system_id}\"}",
+    "cpu_query_correct": false,
+    "recommended_cpu_query": "sum(rate(container_cpu_usage_seconds_total{pod=~\"{system_id}.*\",container!=\"POD\",image!=\"\"}[1m])) * 100",
+    "memory_query_current": "container_memory_usage_bytes{pod=\"{system_id}\"}",
+    "status": "FAIL"
+  },
+  "docker_k3s": {
+    "docker_cli_version": "29.1.3",
+    "docker_daemon_running": false,
+    "docker_build": "BLOCKED",
+    "k3s_installed": false,
+    "kubectl_client_version": "v1.34.1",
+    "kubectl_cluster_available": false,
+    "manifest_yaml_parse": "PASS",
+    "dockerfile_static_status": "FAIL",
+    "status": "FAIL"
+  },
+  "kubernetes_scaling": {
+    "implementation_exists": false,
+    "src_kubernetes_integration_exists": false,
+    "reads_replicas": false,
+    "patches_scale": false,
+    "applies_final_required_pods": false,
+    "rollout_verification": false,
+    "rollback": false,
+    "status": "NOT IMPLEMENTED"
+  },
+  "final_status_matrix": [
+    {"component": "Dataset", "implementation_exists": true, "started": false, "tested": true, "real_logic_used": true, "status": "PARTIAL"},
+    {"component": "Preprocessing", "implementation_exists": true, "started": false, "tested": "inspected", "real_logic_used": true, "status": "PARTIAL"},
+    {"component": "LSTM model", "implementation_exists": true, "started": true, "tested": true, "real_logic_used": true, "status": "PASS"},
+    {"component": "Workload Prediction Engine", "implementation_exists": true, "started": true, "tested": true, "real_logic_used": true, "status": "PASS"},
+    {"component": "Runtime metrics collection", "implementation_exists": true, "started": true, "tested": true, "real_logic_used": "simulated input", "status": "PARTIAL"},
+    {"component": "Prometheus integration", "implementation_exists": true, "started": false, "tested": true, "real_logic_used": false, "status": "FAIL"},
+    {"component": "Carbon Emission Engine", "implementation_exists": true, "started": true, "tested": true, "real_logic_used": true, "status": "PASS"},
+    {"component": "Job Prioritization Engine", "implementation_exists": true, "started": true, "tested": true, "real_logic_used": true, "status": "PASS"},
+    {"component": "Runtime Decision Engine", "implementation_exists": true, "started": true, "tested": true, "real_logic_used": true, "status": "PARTIAL"},
+    {"component": "FastAPI", "implementation_exists": true, "started": true, "tested": true, "real_logic_used": true, "status": "PASS"},
+    {"component": "Demo loop", "implementation_exists": true, "started": true, "tested": true, "real_logic_used": "real engines with simulated metrics", "status": "PARTIAL"},
+    {"component": "Dashboard Level 1", "implementation_exists": true, "started": true, "tested": true, "real_logic_used": true, "status": "PASS"},
+    {"component": "Dashboard Level 2", "implementation_exists": true, "started": true, "tested": "partial", "real_logic_used": true, "status": "PARTIAL"},
+    {"component": "Docker workload", "implementation_exists": true, "started": false, "tested": "attempted", "real_logic_used": false, "status": "FAIL"},
+    {"component": "K3s cluster", "implementation_exists": false, "started": false, "tested": "attempted", "real_logic_used": false, "status": "BLOCKED"},
+    {"component": "Kubernetes automatic scaling", "implementation_exists": false, "started": false, "tested": "inspected", "real_logic_used": false, "status": "NOT IMPLEMENTED"},
+    {"component": "Runtime storage", "implementation_exists": true, "started": true, "tested": true, "real_logic_used": true, "status": "PASS"},
+    {"component": "Retraining", "implementation_exists": true, "started": false, "tested": false, "real_logic_used": false, "status": "NOT TESTED"}
+  ],
+  "final_verdict": {
+    "workload_prediction_engine": "PASS",
+    "carbon_emission_engine": "PASS",
+    "job_prioritization_engine": "PASS",
+    "runtime_decision_engine": "PARTIAL",
+    "fastapi_integration": "PASS",
+    "dashboard_integration": "PARTIAL",
+    "prometheus_integration": "FAIL",
+    "docker_k3s_workload": "FAIL",
+    "kubernetes_automatic_scaling": "NOT IMPLEMENTED",
+    "full_end_to_end_workflow": "PARTIAL"
+  },
+  "critical_blockers": [
+    "Kubernetes automatic scaling is not implemented.",
+    "Prometheus is unavailable and CPU query uses a raw cumulative counter.",
+    "Docker/K3s workload cannot be validated and Dockerfile points to a missing API module."
+  ],
+  "required_fixes": [
+    "Implement dry-run-first Kubernetes scaler with rollout verification and rollback.",
+    "Correct Prometheus CPU/memory preprocessing and runtime/manual normalization.",
+    "Update Dockerfile and stale validation scripts to use active entry points, scaler paths, and configurable API URLs."
+  ]
+}

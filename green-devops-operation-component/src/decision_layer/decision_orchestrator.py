@@ -161,11 +161,14 @@ class DecisionOrchestrator:
             raw_scenario = output.get("raw_scenario", {})
             raw_pods = int(raw_scenario.get("required_pods", 1))
             
-            # Extract optimized scenario (optional)
+            # Extract Engine 2 selected optimized pod count first, then fall back
+            # to the workload-optimized scenario detail when older payloads omit it.
             optimized_scenario = output.get("optimized_scenario")
-            optimized_pods = None
-            if optimized_scenario:
+            optimized_pods = output.get("optimized_required_pods")
+            if optimized_pods is None and optimized_scenario:
                 optimized_pods = int(optimized_scenario.get("required_pods"))
+            elif optimized_pods is not None:
+                optimized_pods = int(optimized_pods)
             
             # Extract carbon metrics
             carbon_saving_gco2 = float(output.get("carbon_saving_gco2", 0.0))

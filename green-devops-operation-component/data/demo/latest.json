@@ -1,64 +1,73 @@
 {
-  "timestamp": "2026-05-21T09:39:17.766785Z",
-  "scenario_name": "REAL PIPELINE - NORMAL",
-  "predicted_cpu": 61.313629150390625,
-  "load_level": "NORMAL",
+  "timestamp": "2026-08-03T06:59:21.610551Z",
+  "scenario_name": "REAL PIPELINE - HIGH",
+  "predicted_cpu": 72.90826416015625,
+  "load_level": "HIGH",
   "current_pods": 1,
   "raw_required_pods": 2,
   "final_required_pods": 2,
   "final_action": "scale_up",
   "jobs_to_delay": [],
-  "delayable_jobs": 2,
-  "carbon_saving": 1.66,
+  "delayable_jobs": 1,
+  "carbon_saving": 0.0,
   "sla_preserved": true,
   "jobs": [
     {
-      "job_id": "live_job_56513_1",
+      "job_id": "live_job_3_1",
+      "job_type": "reporting",
+      "priority": "LOW",
+      "estimated_runtime_seconds": 794,
+      "estimated_cpu_percent": 16.97,
+      "deadline_seconds": 7200,
+      "already_delayed_seconds": 0
+    },
+    {
+      "job_id": "live_job_3_2",
       "job_type": "inference",
       "priority": "MEDIUM",
-      "estimated_runtime_seconds": 302,
-      "estimated_cpu_percent": 34.37,
+      "estimated_runtime_seconds": 890,
+      "estimated_cpu_percent": 25.06,
       "deadline_seconds": 7200,
       "already_delayed_seconds": 0
     },
     {
-      "job_id": "live_job_56513_2",
+      "job_id": "live_job_3_3",
       "job_type": "inference",
-      "priority": "LOW",
-      "estimated_runtime_seconds": 534,
-      "estimated_cpu_percent": 28.02,
+      "priority": "HIGH",
+      "estimated_runtime_seconds": 443,
+      "estimated_cpu_percent": 23.14,
       "deadline_seconds": 7200,
       "already_delayed_seconds": 0
     },
     {
-      "job_id": "live_job_56513_3",
-      "job_type": "reporting",
+      "job_id": "live_job_3_4",
+      "job_type": "analytics",
       "priority": "HIGH",
-      "estimated_runtime_seconds": 265,
-      "estimated_cpu_percent": 7.14,
-      "deadline_seconds": 10800,
+      "estimated_runtime_seconds": 360,
+      "estimated_cpu_percent": 30.62,
+      "deadline_seconds": 1800,
       "already_delayed_seconds": 0
     },
     {
-      "job_id": "live_job_56513_4",
-      "job_type": "reporting",
-      "priority": "LOW",
-      "estimated_runtime_seconds": 659,
-      "estimated_cpu_percent": 6.08,
-      "deadline_seconds": 900,
+      "job_id": "live_job_3_5",
+      "job_type": "analytics",
+      "priority": "HIGH",
+      "estimated_runtime_seconds": 70,
+      "estimated_cpu_percent": 15.18,
+      "deadline_seconds": 10800,
       "already_delayed_seconds": 0
     }
   ],
   "steps": {
     "engine1": {
       "status": "success",
-      "timestamp": "2026-05-21T09:39:11.627888Z",
+      "timestamp": "2026-08-03T06:59:15.471596Z",
       "prediction": {
-        "system_id": "real-pipeline-test",
-        "predicted_cpu": 61.313629150390625,
-        "predicted_load_level": "NORMAL",
+        "system_id": "green-devops-test",
+        "predicted_cpu": 72.90826416015625,
+        "predicted_load_level": "HIGH",
         "recommended_pods": 2,
-        "confidence": 0.75,
+        "confidence": 0.9541834712028503,
         "data_source": "runtime",
         "model_version": "balanced"
       },
@@ -66,52 +75,53 @@
     },
     "engine3": {
       "status": "success",
-      "timestamp": "2026-05-21T09:39:13.676880Z",
+      "timestamp": "2026-08-03T06:59:17.523028Z",
       "engine_version": "3.0",
       "input": {
-        "total_jobs": 4,
-        "backlog_size": 4,
-        "current_load_level": "NORMAL",
-        "current_cpu": 61.313629150390625,
+        "total_jobs": 5,
+        "backlog_size": 5,
+        "current_load_level": "HIGH",
+        "current_cpu": 72.90826416015625,
         "current_pods": 1
       },
       "classification_summary": {
-        "total_classified": 4,
-        "high_priority": 1,
+        "total_classified": 5,
+        "high_priority": 3,
         "medium_priority": 1,
-        "low_priority": 2,
-        "high_priority_percent": 25.0,
-        "medium_priority_percent": 25.0,
-        "low_priority_percent": 50.0
+        "low_priority": 1,
+        "high_priority_percent": 60.0,
+        "medium_priority_percent": 20.0,
+        "low_priority_percent": 20.0
       },
-      "delayable_jobs": 2,
+      "delayable_jobs": 1,
       "delayable_job_ids": [
-        "live_job_56513_2",
-        "live_job_56513_4"
+        "live_job_3_1"
       ],
-      "workload_reduction_percent": 0.4284486179076842,
-      "delayed_cpu_percent": 42.84486179076842,
+      "workload_reduction_percent": 0.1452780030638911,
+      "delayed_cpu_percent": 14.52780030638911,
       "is_meaningful": true,
-      "reason": "2 jobs can be delayed; estimated 42.8% workload reduction",
+      "reason": "1 jobs can be delayed; estimated 14.5% workload reduction",
       "metadata": {
         "backlog_adjustment_factor": 1.0,
-        "total_immediate_cpu": 75.61,
-        "total_delayable_cpu": 34.1,
+        "total_immediate_cpu": 110.97,
+        "total_delayable_cpu": 16.97,
         "eligibility_checks_failed": {
-          "live_job_56513_1": "MEDIUM priority jobs only delayable in LOW load; current load: NORMAL",
-          "live_job_56513_3": "HIGH priority jobs cannot be delayed"
+          "live_job_3_2": "MEDIUM priority jobs only delayable in LOW load; current load: HIGH",
+          "live_job_3_3": "HIGH priority jobs cannot be delayed",
+          "live_job_3_4": "HIGH priority jobs cannot be delayed",
+          "live_job_3_5": "HIGH priority jobs cannot be delayed"
         }
       },
-      "evaluation_ms": 0.29
+      "evaluation_ms": 0.0
     },
     "engine2": {
       "status": "success",
-      "timestamp": "2026-05-21T09:39:15.729293Z",
+      "timestamp": "2026-08-03T06:59:19.557503Z",
       "system_id": "demo-system",
       "engine_version": "2.1",
       "input": {
-        "predicted_cpu": 61.313629150390625,
-        "load_level": "NORMAL",
+        "predicted_cpu": 72.90826416015625,
+        "load_level": "HIGH",
         "raw_required_pods": 2,
         "current_pods": 1,
         "prediction_window_seconds": 30,
@@ -126,14 +136,14 @@
         "required_pods": 2,
         "estimated_energy_kwh": 0.008333,
         "estimated_carbon_gco2": 3.33,
-        "delayable_jobs": 2,
-        "workload_reduction_percent": 0.428
+        "delayable_jobs": 1,
+        "workload_reduction_percent": 0.145
       },
-      "recommended_action": "hybrid",
-      "optimized_required_pods": 1,
-      "carbon_saving_gco2": 1.66,
-      "carbon_saving_percent": 49.8,
-      "reason": "Scale down from 2 to 1 pods, saving 49.8% carbon (safe for NORMAL load)",
+      "recommended_action": "scale_up",
+      "optimized_required_pods": 2,
+      "carbon_saving_gco2": 0.0,
+      "carbon_saving_percent": 0.0,
+      "reason": "Scale up to 2 pods for HIGH load",
       "scenarios": [
         {
           "name": "raw_scale",
@@ -146,11 +156,11 @@
         },
         {
           "name": "optimized_scale",
-          "description": "Scaling with 42.8% workload delay (Engine 3 support)",
+          "description": "Scaling with 14.5% workload delay (Engine 3 support)",
           "required_pods": 2,
           "estimated_energy_kwh": 0.008333,
           "estimated_carbon_gco2": 3.33,
-          "workload_reduction_percent": 0.4284486179076842,
+          "workload_reduction_percent": 0.1452780030638911,
           "performance_impact": "minor_delay"
         },
         {
@@ -182,13 +192,13 @@
             "tons_co2_per_kwh": 0.0004
           }
         },
-        "sla_protected": false
+        "sla_protected": true
       },
-      "evaluation_ms": 1.63
+      "evaluation_ms": 6.51
     },
     "decision": {
       "status": "success",
-      "timestamp": "2026-05-21T09:39:17.764905Z",
+      "timestamp": "2026-08-03T06:59:21.609552Z",
       "decision": {
         "final_action": "scale_up",
         "final_required_pods": 2,
@@ -198,39 +208,39 @@
         "sla_preserved": true
       },
       "reasoning": {
-        "reason": "NORMAL load. Current pods (1) < required pods (2). Scaling up to meet demand.",
-        "policy_applied": "NORMAL_LOAD",
+        "reason": "HIGH load detected. Current pods (1) < required pods (2). Scaling up for SLA protection.",
+        "policy_applied": "HIGH_LOAD",
         "safety_notes": []
       },
       "input_echo": {
-        "load_level": "NORMAL",
-        "predicted_cpu": 61.313629150390625,
+        "load_level": "HIGH",
+        "predicted_cpu": 72.90826416015625,
         "current_pods": 1,
         "raw_required_pods": 2,
         "optimized_required_pods": 2,
         "had_engine3_data": true,
-        "delayable_jobs_available": 2
+        "delayable_jobs_available": 1
       },
       "metadata": {},
-      "evaluation_ms": 0.88
+      "evaluation_ms": 1.0
     }
   },
   "engine1": {
-    "predicted_cpu": 61.313629150390625,
-    "predicted_load_level": "NORMAL",
+    "predicted_cpu": 72.90826416015625,
+    "predicted_load_level": "HIGH",
     "recommended_pods": 2,
-    "confidence": 0.75,
+    "confidence": 0.9541834712028503,
     "data_source": "runtime",
     "model_version": "balanced"
   },
   "engine2": {
-    "carbon_saving_gco2": 1.66,
-    "carbon_saving_percent": 49.8,
-    "recommended_action": "hybrid"
+    "carbon_saving_gco2": 0.0,
+    "carbon_saving_percent": 0.0,
+    "recommended_action": "scale_up"
   },
   "engine3": {
-    "delayable_jobs": 2,
-    "workload_reduction_percent": 0.4284486179076842
+    "delayable_jobs": 1,
+    "workload_reduction_percent": 0.1452780030638911
   },
   "decision": {
     "action": "scale_up",

@@ -1,0 +1,2 @@
+timestamp,predicted_cpu,predicted_load_level,recommended_pods,data_source
+1785739608,13.61,LOW,1,runtime

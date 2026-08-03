@@ -1,4 +1,4 @@
-"""Python Dependencies"""
+# Python Dependencies
 
 # Core Dependencies
 fastapi>=0.95.0

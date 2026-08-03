@@ -1,0 +1,201 @@
+Full System QA Command Log
+Audit date: 2026-08-03
+Workspace: d:\Research\Operation\green-devops-operation-component
+Branch: qa-full-system-audit-20260803
+
+Notes:
+- Commands were executed from PowerShell.
+- `.venv\Scripts\python.exe` was used for project execution after the virtual environment was created.
+- Some long outputs were truncated by the terminal display, but command results were incorporated into the QA report.
+
+1. Get-Location
+2. git status --short --branch
+3. rg --files
+4. Get-ChildItem -Force
+5. git switch -c qa-full-system-audit-20260803
+6. python --version
+7. py -0p
+8. Get-ChildItem -Force -Directory | Where-Object { $_.Name -match '^(\.venv|venv|env)$' } | Select-Object Name,FullName,LastWriteTime
+9. Get-ChildItem -Force -File -Include requirements*.txt,pyproject.toml,setup.py,Pipfile,poetry.lock,environment.yml -Path . | Select-Object Name,Length,LastWriteTime
+10. Test-Path for required model/data/script/dashboard/src paths
+11. Get-ChildItem models -Recurse -File | Select-Object FullName,Length,LastWriteTime
+12. Get-ChildItem -Force -File | Where-Object { $_.Name -in @('requirements.txt','pyproject.toml','setup.py','pytest.ini','Makefile','.env.example') } | Select-Object Name,Length,LastWriteTime
+13. Get-Content requirements.txt
+14. Get-Content pyproject.toml
+15. Get-Content setup.py
+16. Get-ChildItem config -File | Select-Object Name,Length,LastWriteTime
+17. Get-ChildItem logs -Recurse -File | Select-Object FullName,Length,LastWriteTime
+18. py -3.12 -m venv .venv
+19. .\.venv\Scripts\python.exe -m pip install --upgrade pip; .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+20. apply_patch: requirements.txt line 1 changed from triple-quoted string to comment
+21. .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+22. Get-Process | Where-Object { $_.ProcessName -match 'python|pip' } | Select-Object Id,ProcessName,StartTime
+23. .\.venv\Scripts\python.exe -m pip list
+24. .\.venv\Scripts\python.exe -m pip check
+25. Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'python' } | Select-Object ProcessId,Name,CommandLine
+26. Get-Content dashboard/requirements.txt
+27. rg -n "tensorflow|torch|scikit|sklearn|fastapi|uvicorn|streamlit|plotly|kubernetes|prometheus|requests|pandas|numpy" src dashboard scripts tests *.py
+28. .\.venv\Scripts\python.exe -m pip index versions tensorflow
+29. .\.venv\Scripts\python.exe -m pip install fastapi uvicorn pydantic python-dotenv PyYAML pandas numpy pyarrow scikit-learn requests streamlit plotly kubernetes prometheus-client streamlit-autorefresh joblib APScheduler pytest pytest-cov
+30. .\.venv\Scripts\python.exe -m pip install torch
+31. .\.venv\Scripts\python.exe -m pip install tensorflow
+32. .\.venv\Scripts\python.exe -m pip check
+33. .\.venv\Scripts\python.exe -m pip list
+34. git diff -- requirements.txt
+35. .\.venv\Scripts\python.exe - <import check script>
+36. rg -n "^(from|import) (model|predictor|runtime_adapter|output_contract|retraining|config|metrics_collector|runtime_store|mode_manager|bootstrap)" src/workload_prediction_engine scripts/run_live_api.py dashboard src
+37. Get-Content src/workload_prediction_engine/predictor.py
+38. Get-Content src/workload_prediction_engine/engine1.py
+39. Get-Content src/workload_prediction_engine/runtime_adapter.py
+40. Get-Content scripts/run_live_api.py
+41. Get-Content src/workload_prediction_engine/api.py
+42. apply_patch: workload_prediction_engine import shims
+43. .\.venv\Scripts\python.exe - <fresh import matrix>
+44. Get-Content src/workload_prediction_engine/config.py
+45. Get-Content scripts/prepare_balanced_full_dataset.py
+46. Get-Content scripts/retrain_lstm_model.py
+47. Get-ChildItem data/public_datasets/fastStorage/2013-8 -File | Measure-Object
+48. Get-ChildItem data/preprocessed/balanced_dataset -File
+49. rg -n "R2|R²|MAPE|0.946|3.28|balanced|workload_predictor_balanced" .
+50. .\.venv\Scripts\python.exe - <numpy/scaler/model-state audit>
+51. Get-Content src/workload_prediction_engine/output_contract.py
+52. Get-Content src/workload_prediction_engine/runtime_store.py
+53. Get-Content src/workload_prediction_engine/bootstrap.py
+54. Get-Content src/workload_prediction_engine/metrics_collector.py
+55. .\.venv\Scripts\python.exe - <Engine 1 direct inference and runtime adapter test>
+56. rg -n "resample\(|[0-9]+S|fillna\(method" src/workload_prediction_engine
+57. apply_patch: runtime_adapter `30S` -> `30s`
+58. .\.venv\Scripts\python.exe - <Engine 1 direct test rerun>
+59. apply_patch: runtime_adapter `.fillna(method='ffill')/.fillna(method='bfill')` -> `.ffill()/.bfill()`
+60. .\.venv\Scripts\python.exe - <Engine 1 direct test rerun>
+61. rg -n "load_model|load_scaler|use_mock|Mock" src/workload_prediction_engine/live_predictor.py src/workload_prediction_engine/engine1.py scripts/run_live_api.py
+62. apply_patch: live_predictor real model/scaler loading in mock metrics mode
+63. Get-Content src/carbon_engine/*.py
+64. Get-Content src/job_prioritization_engine/*.py
+65. Get-Content src/decision_layer/*.py
+66. .\.venv\Scripts\python.exe - <carbon/job/decision import matrix>
+67. apply_patch: carbon_engine and job_prioritization_engine import shims
+68. .\.venv\Scripts\python.exe - <fresh package import check>
+69. .\.venv\Scripts\python.exe - <independent Engine 2/3/Decision scenarios>
+70. .\.venv\Scripts\python.exe - <Engine 2 payload inspection>
+71. apply_patch: decision_orchestrator reads top-level optimized_required_pods
+72. .\.venv\Scripts\python.exe - <Decision scenarios rerun>
+73. .\.venv\Scripts\python.exe - <extra decision probes>
+74. .\.venv\Scripts\python.exe scripts/run_live_api.py --help
+75. Start-Process .\.venv\Scripts\python.exe scripts/run_live_api.py --system-id green-devops-test --host 0.0.0.0 --port 5002 --interval 5 --mock --log-level INFO
+76. Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*run_live_api.py*' }
+77. Get-NetTCPConnection -LocalPort 5002
+78. Get-Content logs\qa_api_stdout_20260803.log
+79. Get-Content logs\qa_api_stderr_20260803.log
+80. .\.venv\Scripts\python.exe - <FastAPI endpoint test script>
+81. rg -n "→|←|✓|✗|❌|✅" src scripts dashboard
+82. apply_patch: replace Unicode arrows in model/predictor logging
+83. Get-Content scripts/run_demo_loop.py
+84. .\.venv\Scripts\python.exe scripts/run_demo_loop.py --help
+85. .\.venv\Scripts\python.exe scripts/run_demo_loop.py --api-url http://localhost:5002 --interval 5 --initial-pods 1 --once
+86. Stop-Process for initial API processes 16396,34092
+87. Start-Process .\.venv\Scripts\python.exe scripts/run_live_api.py --system-id green-devops-test --host 0.0.0.0 --port 5002 --interval 5 --mock --log-level INFO
+88. Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*run_live_api.py*' }
+89. Get-Content logs\qa_api_stdout_20260803_restart.log
+90. Get-Content logs\qa_api_stderr_20260803_restart.log
+91. apply_patch: policy_rules normal-load scale-up final_pods fix
+92. .\.venv\Scripts\python.exe scripts/run_demo_loop.py --api-url http://localhost:5002 --interval 5 --initial-pods 1 --once
+93. .\.venv\Scripts\python.exe - <stateful LoopingScenarioRunner 3-cycle test>
+94. Get-Content data\demo\latest.json
+95. Get-Content data\demo\history.csv -Tail 12
+96. Get-Content data\runtime_metrics\green-devops-test_runtime_metrics.csv -Tail 5
+97. Get-Content data\predictions\green-devops-test.csv -Tail 5
+98. Get-Content dashboard/unified_app.py
+99. Get-Content dashboard/app.py
+100. Get-Content dashboard/technical_app.py
+101. apply_patch: dashboard API URL defaults to GREEN_DEVOPS_API_URL or localhost:5002
+102. Start-Process .\.venv\Scripts\streamlit.exe run dashboard/unified_app.py --server.port 8503 --server.address 0.0.0.0 --server.headless true
+103. Invoke-WebRequest http://localhost:8503
+104. .\.venv\Scripts\python.exe - <Streamlit AppTest overview/technical>
+105. .\.venv\Scripts\python.exe - <Streamlit AppTest technical 90s>
+106. .\.venv\Scripts\python.exe - <dashboard fetch helper checks>
+107. Invoke-WebRequest http://localhost:9090/-/healthy
+108. Invoke-WebRequest http://localhost:9090/api/v1/targets
+109. Test-Path src/kubernetes_integration
+110. rg -n "kubernetes|kubectl|replica|replicas|patch|scale|AppsV1Api|read_namespaced_deployment|patch_namespaced_deployment" src scripts infrastructure -S
+111. docker --version
+112. docker info --format '{{json .ServerVersion}}'
+113. k3s --version
+114. kubectl version --client --output=yaml
+115. kubectl get nodes -o wide
+116. kubectl apply --dry-run=client -f infrastructure/k8s_manifests
+117. docker build -f infrastructure/docker/Dockerfile -t green-devops-operation-qa:latest .
+118. .\.venv\Scripts\python.exe - <attempted bash-style heredoc YAML parse, failed in PowerShell>
+119. Get-Content infrastructure/docker/Dockerfile
+120. Get-Content infrastructure/k8s_manifests/deployment.yaml
+121. Get-Content infrastructure/k8s_manifests/service.yaml
+122. Get-Content infrastructure/k8s_manifests/rbac.yaml
+123. kubectl apply --dry-run=client --validate=false -f infrastructure/k8s_manifests
+124. @'...'@ | .\.venv\Scripts\python.exe - <PyYAML manifest parse>
+125. Test-Path models/scalers; Test-Path src/api/main.py; Test-Path src/api/live_api.py; rg --files src/api; rg -n "FastAPI\(|app =|/ready|/health" src/api scripts/run_live_api.py
+126. kubectl get deployment -A; kubectl get pods -A
+127. rg --files | rg '(^|/|\\)(test_.*\.py|.*_test\.py|.*validation.*\.py|verify_.*\.py)$'
+128. Get-Content pytest.ini; Get-Content pyproject.toml
+129. Get-ChildItem tests -Recurse
+130. Get-Content src/api/__init__.py; Get-ChildItem models/scalers -Recurse -File
+131. Get-ChildItem -Path . -Recurse -File -Include test_*.py,*_test.py,*validation*.py,verify_*.py | Where-Object { $_.FullName -notmatch '\\.venv\\' }
+132. Get-Content selected test scripts
+133. .\.venv\Scripts\python.exe -m pytest
+134. .\.venv\Scripts\python.exe test_engine2_upgrade.py
+135. .\.venv\Scripts\python.exe test_engine3_implementation.py
+136. .\.venv\Scripts\python.exe decision_layer_validation.py
+137. .\.venv\Scripts\python.exe high_load_policy_fix_validation.py
+138. .\.venv\Scripts\python.exe verify_unified_dashboard.py
+139. .\.venv\Scripts\python.exe test_looping_system.py
+140. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe test_engine2_upgrade.py
+141. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe test_engine3_implementation.py
+142. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe decision_layer_validation.py
+143. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe high_load_policy_fix_validation.py
+144. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe verify_unified_dashboard.py
+145. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe scripts\test_balanced_model.py
+146. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe scripts\verify_engine1_consistency.py
+147. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe scripts\final_validation.py
+148. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe scripts\test_live_predictor_mock.py
+149. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe scripts\test_mode_transition.py
+150. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe scripts\test_enhancements.py
+151. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe scripts\test_engine1.py
+152. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe scripts\test_full_system.py
+153. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe test_demo_system.py
+154. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe test_final_validation.py
+155. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe test_realtime_autorefresh.py
+156. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe test_session_state_fix.py
+157. $env:PYTHONIOENCODING='utf-8'; .\.venv\Scripts\python.exe test_dashboards.py
+158. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; $env:PYTHONPATH='dashboard;.'; .\.venv\Scripts\python.exe verify_unified_dashboard.py
+159. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe test_dashboards.py
+160. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe test_dashboard.py
+161. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; $env:PYTHONPATH='dashboard;.'; .\.venv\Scripts\python.exe test_dashboard.py
+162. rg -n "localhost|5000|5002|8000|API|BASE_URL" test_carbon_endpoint.py verify_carbon_endpoint.py test_carbon_import.py -S
+163. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe test_carbon_import.py
+164. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe test_carbon_endpoint.py
+165. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe verify_carbon_endpoint.py
+166. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe qa_simple_test.py
+167. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe revalidation_post_fix.py
+168. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe demo_integration_test.py
+169. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe comprehensive_validation.py
+170. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe full_system_validation.py
+171. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe qa_full_validation.py
+172. $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'; .\.venv\Scripts\python.exe scripts\test_lstm_quick.py
+173. Get-ChildItem logs -Recurse -File | Select-Object FullName,Length,LastWriteTime | Sort-Object LastWriteTime -Descending | Select-Object -First 30
+174. Get-Content logs\qa_api_stderr_20260803_restart.log -Tail 80; Get-Content logs\qa_api_stdout_20260803_restart.log -Tail 120; Get-Content logs\qa_streamlit_stderr_20260803.log -Tail 80; Get-Content logs\qa_streamlit_stdout_20260803.log -Tail 80
+175. Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'python|streamlit|uvicorn' } | Select-Object ProcessId,Name,CommandLine
+176. git diff --stat
+177. git diff -- selected modified files
+178. rg -n "Python Dependencies|from \.|Mock metrics mode enabled|real model inference remains active|\.resample\(|ffill\(|bfill\(|optimized_required_pods|final_pods = context\.engine2_raw_required_pods|API_BASE_URL = os.getenv|5002|->" selected files
+179. Stop API/dashboard processes matching started entry points
+180. Get-NetTCPConnection -LocalPort 5002,8503
+181. Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'python|streamlit' }
+182. Invoke-WebRequest http://localhost:5002/health; Invoke-WebRequest http://localhost:8503
+183. git status --short --branch
+184. Get-ChildItem runtime/prediction artifacts
+185. Get-Content data\demo\latest.json; Get-Content data\demo\history.csv -Tail 12; Get-Content runtime/prediction CSV tails
+186. apply_patch: create FULL_SYSTEM_QA_REPORT.md, FULL_SYSTEM_QA_RESULTS.json, FULL_SYSTEM_COMMAND_LOG.txt, FULL_SYSTEM_ERROR_LOG.txt, FULL_SYSTEM_FIX_PLAN.md
+187. .\.venv\Scripts\python.exe -m json.tool FULL_SYSTEM_QA_RESULTS.json > $null
+188. Get-Item FULL_SYSTEM_QA_REPORT.md,FULL_SYSTEM_QA_RESULTS.json,FULL_SYSTEM_COMMAND_LOG.txt,FULL_SYSTEM_ERROR_LOG.txt,FULL_SYSTEM_FIX_PLAN.md | Select-Object Name,Length,LastWriteTime
+189. git status --short --branch
+190. Get-NetTCPConnection -LocalPort 5002,8503 -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,State,OwningProcess
+191. apply_patch: append final verification commands to FULL_SYSTEM_COMMAND_LOG.txt

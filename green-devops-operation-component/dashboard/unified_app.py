@@ -133,7 +133,7 @@ def main():
             render_technical()
     except Exception as e:
         st.error(f"Error loading dashboard: {str(e)}")
-        st.info("Check that the API server is running and accessible at http://localhost:5050")
+        st.info("Check that the API server is running and accessible at the configured API URL.")
 
 
 if __name__ == "__main__":

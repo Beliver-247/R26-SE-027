@@ -6,7 +6,10 @@ Converts energy consumption to CO2 emissions using grid carbon intensity.
 
 import logging
 from typing import Dict, Any
-from carbon_engine.config import CARBON_INTENSITY_GCO2_PER_KWH
+try:
+    from .config import CARBON_INTENSITY_GCO2_PER_KWH
+except ImportError:
+    from carbon_engine.config import CARBON_INTENSITY_GCO2_PER_KWH
 
 logger = logging.getLogger(__name__)
 
