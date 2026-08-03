@@ -55,6 +55,10 @@ data/feature_store/*
 *.xltm
 ~$*.xls*
 
+# Large generated NumPy dataset arrays
+data/preprocessed/**/*.npy
+data/preprocessed/**/*.npz
+
 # Models
 models/trained/*
 models/scalers/*
