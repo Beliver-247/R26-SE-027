@@ -1,0 +1,40 @@
+# Production Configuration Overrides
+
+environment: prod
+debug: false
+
+kubernetes:
+  namespace: green-devops
+  api_retry_count: 5
+
+prometheus:
+  url: http://prometheus.monitoring:9090
+  retry_count: 5
+
+data_collection:
+  retention_days: 90
+
+workload_prediction:
+  confidence_threshold: 0.85
+
+sla:
+  response_time_ms: 100
+  availability_percent: 99.95
+
+scaling:
+  min_replicas: 2
+  max_replicas: 100
+  scale_up_stabilization_minutes: 5
+  scale_down_stabilization_minutes: 15
+
+model_retraining:
+  interval_hours: 12
+
+logging:
+  level: INFO
+  backup_count: 30
+
+api:
+  workers: 8
+  timeout_seconds: 60
+  rate_limit_requests: 1000

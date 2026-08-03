@@ -1,0 +1,27 @@
+# Development Configuration Overrides
+
+environment: dev
+debug: true
+
+kubernetes:
+  namespace: green-devops-dev
+
+prometheus:
+  url: http://localhost:9090
+
+data_collection:
+  retention_days: 7
+
+workload_prediction:
+  confidence_threshold: 0.70
+
+sla:
+  response_time_ms: 500
+  max_cpu_utilization: 0.90
+
+scaling:
+  min_replicas: 1
+  max_replicas: 10
+
+logging:
+  level: DEBUG

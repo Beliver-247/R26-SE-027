@@ -1,0 +1,32 @@
+# Default values for operation-phase Helm chart
+
+replicaCount: 1
+
+image:
+  repository: green-devops-operation
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+environment: prod
+prometheusUrl: http://prometheus:9090
+logLevel: INFO

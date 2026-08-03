@@ -1,0 +1,99 @@
+# Job Prioritization and Delay Policies
+
+# Job categories and criticality
+job_categories:
+  critical:
+    label_patterns:
+      - "priority: critical"
+      - "sla_tier: gold"
+      - "service_type: payment"
+      - "service_type: authentication"
+    delay_allowed: false
+    max_wait_time_seconds: 0
+    fairness_weight: 1.0
+  
+  important:
+    label_patterns:
+      - "priority: high"
+      - "sla_tier: silver"
+      - "service_type: api"
+    delay_allowed: true
+    max_wait_time_seconds: 60
+    fairness_weight: 0.5
+  
+  delayable:
+    label_patterns:
+      - "priority: low"
+      - "sla_tier: bronze"
+      - "batch_job: true"
+      - "service_type: analytics"
+    delay_allowed: true
+    max_wait_time_seconds: 3600
+    fairness_weight: 0.1
+  
+  background:
+    label_patterns:
+      - "priority: background"
+      - "service_type: maintenance"
+      - "service_type: cleanup"
+    delay_allowed: true
+    max_wait_time_seconds: 7200
+    fairness_weight: 0.05
+
+# Delay policies
+delay_policies:
+  max_delayed_jobs_total: 100
+  max_delayed_jobs_per_type: 50
+  max_total_delay_duration_seconds: 86400  # 24 hours
+  
+  trigger_conditions:
+    carbon_threshold_grams: 1000  # Delay if carbon > 1kg CO2e
+    cpu_utilization_percent: 85
+    memory_utilization_percent: 85
+    cost_threshold_dollars: 100
+  
+  release_conditions:
+    carbon_threshold_grams: 200  # Release if carbon < 200g CO2e
+    cpu_utilization_percent: 30
+    memory_utilization_percent: 30
+    cost_threshold_dollars: 10
+
+# Fairness and starvation prevention
+fairness:
+  enable_fairness_monitoring: true
+  max_delay_per_job_seconds: 3600  # Never delay a job > 1 hour
+  starvation_prevention:
+    enabled: true
+    force_release_after_seconds: 1800  # Force release after 30 minutes
+  fairness_check_interval_minutes: 5
+  fairness_weight_decay: 0.95  # Weights decrease over time
+
+# Queue management
+queue_management:
+  queue_type: priority_fifo  # priority_fifo, round_robin, weighted
+  max_queue_size: 1000
+  priority_levels: 5
+  fifo_with_aging: true  # Age increases priority over time
+
+# Job delay detection and classification
+job_detection:
+  use_job_labels: true
+  use_job_type: true
+  use_estimated_duration: true
+  use_deadline: true
+  fallback_classification: delayable
+
+# Carbon-aware delay scheduling
+carbon_aware:
+  optimize_for_carbon: true
+  carbon_reduction_target_percent: 20  # Try to reduce carbon by 20%
+  prefer_delay_over_scale: true
+  delay_vs_scale_ratio: 0.8  # Prefer job delay 80% of the time
+
+# Delayed job release scheduling
+release_scheduling:
+  release_method: earliest_deadline  # earliest_deadline, lowest_carbon, fairness
+  batch_release: true
+  batch_size: 5
+  release_interval_seconds: 60
+  look_ahead_minutes: 5  # Look ahead 5 minutes for good release windows
