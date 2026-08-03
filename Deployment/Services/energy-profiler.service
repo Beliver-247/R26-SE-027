@@ -1,0 +1,15 @@
+[Unit]
+Description=Green DevOps Energy Profiler
+After=network.target deployment-tracker.service
+Requires=deployment-tracker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/energy-profiller-hiran
+ExecStart=/opt/energy-profiller-hiran/venv/bin/python3 /opt/energy-profiller-hiran/profiler.py --integrated --interval 10 --tracker-url http://localhost:5001
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
