@@ -266,8 +266,7 @@ green-devops-energy-efficient-cicd/
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
-cd green-devops-energy-efficient-cicd
+git clone https://github.com/Beliver-247/R26-SE-027
 ```
 
 2. Navigate to the required component:
