@@ -1,35 +1,7 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// MERGED PIPELINE
-//   Stage group A (unchanged, "his"):  Build Optimizer  — selective build/test
-//     + carbon-aware BUILD scheduling (beliver247/green-release-app)
-//   Stage group B (unchanged, "mine"): Deployment Optimizer — AI-picked
-//     deploy strategy (canary/rolling/recreate) + carbon tracking (Components
-//     1 & 2 of the dissertation, via the green-agent shared library)
-//
-// NOTE (demo-mode edit): all remote-deploy stages that used to SSH into
-// the OPC box (147.15.144.192) now run the same docker/docker-compose
-// commands directly on the Jenkins agent instead. This avoids the
-// intermittent "connection refused" from that host. REMOTE_HOST /
-// REMOTE_PORT / REMOTE_USER / SSH_CREDENTIALS are left declared below
-// but unused — flip the deploy stages back to sshagent+ssh if you need
-// real remote deploys again later.
-//
-// ASSUMPTIONS MADE WHILE MERGING (check these before running):
-//   1. DOCKER_HUB_CREDENTIALS: his pipeline never pushed to Docker Hub (it
-//      deployed locally), so there was no credential of "his" to reuse for
-//      pushing beliver247/green-release-app. Using your
-//      'dockerhub-hiran-credentials' id here — swap if there's a shared one.
-//   2. Health-check port for local deploys is 8080 (from your original
-//      docker-compose-based deploy).
-//   3. docker-compose.yml is expected at the repo root inside env.WORK_DIR
-//      (same assumption his "Deploy Locally" stage made).
-//   4. CANARY_CONTAINER renamed to green-release-canary to match the new app.
-// ═══════════════════════════════════════════════════════════════════════════
-
 @Library('green-agent') _
 
 // ─────────────────────────────────────────────────────────────────────────
-// Groovy helpers (from the build-optimization pipeline — unchanged)
+// Groovy helpers
 // ─────────────────────────────────────────────────────────────────────────
 def greenReleaseModules() {
     return ['core', 'service', 'api', 'app']
@@ -44,8 +16,8 @@ def buildMockCarbonData() {
         "{\"timestamp\":\"${isoTs}\",\"intensity\":${intensity}}"
     }
     return [
-            history:  '[' + entries.join(',') + ']',
-            forecast: '[{"hour":1,"intensity":300.0},{"hour":2,"intensity":250.0},{"hour":3,"intensity":180.0}]'
+        history:  '[' + entries.join(',') + ']',
+        forecast: '[{"hour":1,"intensity":300.0},{"hour":2,"intensity":250.0},{"hour":3,"intensity":180.0}]'
     ]
 }
 
@@ -67,7 +39,7 @@ def discoverModuleTestInventory() {
     def inventory = [:]
     greenReleaseModules().each { moduleName ->
         def countText = sh(
-                script: '''
+            script: '''
                 module="''' + moduleName + '''"
                 if [ -d "$module/src/test/java" ]; then
                   grep -Rho '@Test' "$module/src/test/java" --include='*.java' 2>/dev/null | wc -l | tr -d ' '
@@ -75,7 +47,7 @@ def discoverModuleTestInventory() {
                   echo 0
                 fi
             ''',
-                returnStdout: true
+            returnStdout: true
         ).trim()
         inventory[moduleName] = countText ? countText.toInteger() : 0
     }
@@ -86,7 +58,7 @@ def readSurefireTestCounts() {
     def counts = [:]
     greenReleaseModules().each { moduleName ->
         def countText = sh(
-                script: '''
+            script: '''
                 module="''' + moduleName + '''"
                 report_dir="$module/target/surefire-reports"
                 if [ -d "$report_dir" ] && find "$report_dir" -name 'TEST-*.xml' -type f | grep -q .; then
@@ -95,7 +67,7 @@ def readSurefireTestCounts() {
                   echo 0
                 fi
             ''',
-                returnStdout: true
+            returnStdout: true
         ).trim()
         counts[moduleName] = countText ? countText.toInteger() : 0
     }
@@ -112,8 +84,6 @@ def affectedModuleSet() {
     return env.AFFECTED_MODULES.split(',').collect { it.trim() }.findAll { it } as Set
 }
 
-// Whether the app image actually needs to be (re)built/deployed this run —
-// used to gate Docker Build / Push / the whole deployment-optimizer group.
 def appAffected() {
     return env.AFFECTED_MODULES == 'all' || env.AFFECTED_MODULES?.split(',')?.contains('app')
 }
@@ -123,72 +93,85 @@ pipeline {
 
     parameters {
         booleanParam(
-                name: 'DRY_RUN',
-                defaultValue: false,
-                description: 'When true, only run the optimizer analysis without building, testing, or deploying.'
+            name: 'DRY_RUN',
+            defaultValue: false,
+            description: 'When true, only run the optimizer analysis without building, testing, or deploying.'
         )
         booleanParam(
-                name: 'FORCE_FULL_BUILD',
-                defaultValue: false,
-                description: 'Skip the optimizer analysis and force a full build and test of all modules.'
+            name: 'FORCE_FULL_BUILD',
+            defaultValue: false,
+            description: 'Skip the optimizer analysis and force a full build and test of all modules.'
         )
         booleanParam(
-                name: 'ENABLE_GREEN_SCHEDULING',
-                defaultValue: true,
-                description: 'Allow the pipeline to delay the build until a greener time window.'
+            name: 'ENABLE_GREEN_SCHEDULING',
+            defaultValue: true,
+            description: 'Allow the pipeline to delay the build until a greener time window.'
         )
         string(
-                name: 'OVERRIDE_SCHEDULE_HOUR',
-                defaultValue: 'auto',
-                description: 'Override ML recommendation (e.g., "5" for 5 AM). Use "auto" to let the ML model decide.'
+            name: 'OVERRIDE_SCHEDULE_HOUR',
+            defaultValue: 'auto',
+            description: 'Override ML recommendation. Use "auto" to let the ML model decide.'
+        )
+        string(
+            name: 'PRE_SELECTED_STRATEGY',
+            defaultValue: '',
+            description: 'Internal: pre-selected deploy strategy carried over from a previously rescheduled build. Set automatically — do not change manually.'
         )
     }
 
-    environment {
-        // ── Build-optimization app/creds ("his") ───────────────────────────
-        DOCKER_IMAGE              = 'hiranx/green-release-app'
-        DOCKER_TAG                = "${BUILD_NUMBER}"
-        // NOTE (assumption #1 above): his pipeline had no Docker Hub push
-        // step / credential of its own — reusing yours to push this image
-        // so the remote host can pull it. Replace the id if there's a
-        // shared credential you'd rather use.
-        DOCKER_HUB_CREDENTIALS    = credentials('dockerhub-hiran-credentials')
-        DASHBOARD_URL             = 'http://host.docker.internal:5003'
-        ELECTRICITY_MAPS_API_KEY  = 'em_nGgVAPUefFX2qe8BkqzFgw3n8uGpJE2J'
+    options {
+        disableConcurrentBuilds()
+    }
 
-        // ── Deployment-optimization settings ("mine") ──────────────────────
-        // Left in place but unused now that deploys run locally — see note
-        // at the top of the file if you want to switch back to remote.
+    environment {
+        DOCKER_IMAGE             = 'hiranx/green-release-app'
+        DOCKER_TAG               = "${BUILD_NUMBER}"
+        DOCKER_HUB_CREDENTIALS   = credentials('dockerhub-hiran-credentials')
+        DASHBOARD_URL            = 'http://host.docker.internal:5005'
+        ELECTRICITY_MAPS_API_KEY = 'em_nGgVAPUefFX2qe8BkqzFgw3n8uGpJE2J'
+
         REMOTE_HOST         = '147.15.144.192'
         REMOTE_PORT         = '2510'
         REMOTE_USER         = 'hiran'
         SSH_CREDENTIALS     = 'ubuntu-pc-ssh-hiran'
 
-        METRICS_URL         = 'http://172.17.0.1:5001'   // Component 1: carbon/deployment tracker
-        GREEN_AGENT_URL     = 'http://172.17.0.1:5002'   // Component 2: AI Green Deployment Decision Engine
+        METRICS_URL         = 'http://172.17.0.1:5001'
+        GREEN_AGENT_URL     = 'http://172.17.0.1:5002'
 
         CANARY_WEIGHT       = '20'
         CANARY_WAIT_SECS    = '60'
         CANARY_CONTAINER    = 'green-release-canary'
         ROLLING_WAIT_SECS   = '15'
 
-        // Set at runtime by the AI agent in "Green AI Check"
-        DEPLOY_STRATEGY     = 'rolling'
+        // ── FIX: DEPLOY_STRATEGY removed from here. ─────────────────────
+        // WHY: Variables declared in the top-level `environment {}` block
+        // get a special, effectively locked binding in declarative
+        // pipelines. Later reassigning it with `env.DEPLOY_STRATEGY = ...`
+        // inside a script/shared-library step does NOT reliably override
+        // reads of `${env.DEPLOY_STRATEGY}` elsewhere in the pipeline -
+        // every `when { expression { env.DEPLOY_STRATEGY == '...' } }`
+        // block kept seeing the literal 'rolling' declared here, no
+        // matter what greenCheck() actually selected (canary/recreate).
+        // The default is now set dynamically in 'Init Build Metadata'
+        // instead, where it behaves like a normal mutable env var.
     }
 
     stages {
 
-        // ═════════════════════════════════════════════════════════════════
-        //  GROUP A — BUILD OPTIMIZER (unchanged, "his")
-        // ═════════════════════════════════════════════════════════════════
-
         stage('Init Build Metadata') {
             steps {
                 script {
-                    env.PIPELINE_START = System.currentTimeMillis().toString()
-                    env.COMMIT_SHA = ''
-                    env.COMMIT_MSG = ''
-                    env.WORK_DIR = fileExists('pom.xml') ? '.' : 'green-release-demo'
+                    env.PIPELINE_START    = System.currentTimeMillis().toString()
+                    env.COMMIT_SHA        = ''
+                    env.COMMIT_MSG        = ''
+                    env.WORK_DIR          = fileExists('pom.xml') ? '.' : 'green-release-demo'
+                    env.DOCKER_PUSH_OK    = 'false'
+                    env.DEPLOY_STRATEGY   = 'rolling'
+                    // Carry forward pre-selected strategy from a rescheduled build
+                    if (params.PRE_SELECTED_STRATEGY?.trim()) {
+                        env.DEPLOY_STRATEGY = params.PRE_SELECTED_STRATEGY.toString().toLowerCase().trim()
+                        echo "🌿 Carrying forward pre-selected deploy strategy: ${env.DEPLOY_STRATEGY}"
+                    }
                 }
             }
         }
@@ -198,7 +181,6 @@ pipeline {
                 script {
                     def workspace = pwd()
                     echo "Setting up local tool binaries (Docker CLI, Maven, and Docker Compose)..."
-
                     sh 'mkdir -p tool-bin'
 
                     if (sh(script: 'command -v docker >/dev/null 2>&1', returnStatus: true) != 0) {
@@ -257,11 +239,9 @@ pipeline {
                         echo "Checking out green-release-demo..."
                         dir(env.WORK_DIR) {
                             checkout([$class: 'GitSCM',
-                                      branches: [[name: '*/main']],
-                                      userRemoteConfigs: [[
-                                                                  url: 'https://github.com/Beliver-247/green-release-demo.git'
-                                                          ]],
-                                      extensions: [[ $class: 'CloneOption', shallow: false, depth: 0, noTags: false ]]
+                                branches: [[name: '*/main']],
+                                userRemoteConfigs: [[url: 'https://github.com/Beliver-247/green-release-demo.git']],
+                                extensions: [[$class: 'CloneOption', shallow: false, depth: 0, noTags: false]]
                             ])
                         }
                     } else {
@@ -278,20 +258,18 @@ pipeline {
                     dir(env.WORK_DIR) {
                         env.COMMIT_SHA = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
                         env.COMMIT_MSG = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
-
-                        // Urgent deploy bypass — skip all green checks
-                        if (env.COMMIT_MSG.toLowerCase().contains('[urgent]')) {
-                            env.URGENT_DEPLOY = 'true'
-                            echo "⚡ URGENT deployment detected in commit message — all green checks will be skipped"
-                        } else {
-                            env.URGENT_DEPLOY = 'false'
+                        env.URGENT_DEPLOY = env.COMMIT_MSG.toLowerCase().contains('[urgent]') ? 'true' : 'false'
+                        env.BYPASS_GREEN = env.COMMIT_MSG.toLowerCase().contains('[bypass-green]') ? 'true' : 'false'
+                        if (env.URGENT_DEPLOY == 'true' || env.BYPASS_GREEN == 'true') {
+                            echo "⚡ URGENT/BYPASS deployment detected — all green checks will be skipped"
                         }
-
-                        if (fileExists('.last_built_commit')) {
-                            env.GIT_PREVIOUS_SUCCESSFUL_COMMIT = readFile('.last_built_commit').trim()
-                        } else {
-                            env.GIT_PREVIOUS_SUCCESSFUL_COMMIT = 'null'
-                        }
+                        env.GIT_PREVIOUS_SUCCESSFUL_COMMIT = fileExists('.last_built_commit') ? readFile('.last_built_commit').trim() : 'null'
+                        // Explicitly set GIT_COMMIT and GIT_PREVIOUS_COMMIT so the optimizer
+                        // receives the correct diff range. Jenkins does NOT auto-populate these
+                        // for manual/scripted checkouts — they stay null, causing the optimizer
+                        // to be unable to resolve the diff base inside the Docker container.
+                        env.GIT_COMMIT         = env.COMMIT_SHA
+                        env.GIT_PREVIOUS_COMMIT = sh(script: 'git rev-parse HEAD~1 2>/dev/null || echo null', returnStdout: true).trim()
                     }
                 }
             }
@@ -301,13 +279,13 @@ pipeline {
             steps {
                 dir(env.WORK_DIR) {
                     script {
-                        if (params.FORCE_FULL_BUILD) {
-                            echo "=== FORCE_FULL_BUILD is enabled. Skipping Optimizer analysis ==="
-                            env.OPTIMIZER_STATUS = 'success'
-                            env.AFFECTED_MODULES = 'all'
+                        if (params.FORCE_FULL_BUILD || env.URGENT_DEPLOY == 'true') {
+                            echo "=== Full Build Override (Force/Urgent). Skipping Optimizer analysis ==="
+                            env.OPTIMIZER_STATUS    = 'success'
+                            env.AFFECTED_MODULES    = 'all'
                             env.MAVEN_BUILD_COMMANDS = 'mvn clean install -DskipTests'
-                            env.MAVEN_TEST_COMMANDS = 'mvn test'
-                            env.OPTIMIZER_DURATION = '0'
+                            env.MAVEN_TEST_COMMANDS  = 'mvn test'
+                            env.OPTIMIZER_DURATION   = '0'
                             def mockCarbon = buildMockCarbonData()
                             env.CARBON_INTENSITY    = '320.0'
                             env.GREEN_PROBABILITY   = '0.35'
@@ -322,7 +300,7 @@ pipeline {
 
                         def analyzeStart = System.currentTimeMillis()
                         def output = sh(
-                                script: '''
+                            script: '''
                                 EXIT_CODE=0
                                 tar -C "$PWD" -cf - . | docker run --rm -i \
                                   -e ELECTRICITY_MAPS_API_KEY="''' + (env.ELECTRICITY_MAPS_API_KEY ?: '') + '''" \
@@ -330,6 +308,7 @@ pipeline {
                                   -e GIT_PREVIOUS_COMMIT="''' + env.GIT_PREVIOUS_COMMIT + '''" \
                                   -e GIT_COMMIT="''' + env.GIT_COMMIT + '''" \
                                   -v /var/run/docker.sock:/var/run/docker.sock \
+                                  --entrypoint "" \
                                   beliver247/build-optimizer-agent:latest \
                                   bash -lc '
                                     set -e
@@ -337,20 +316,18 @@ pipeline {
                                     tar -xf - -C /work
                                     cd /work
                                     git config --global --add safe.directory /work
-
                                     python3 -m optimizer \
                                       --project-root /work \
                                       --dry-run true \
                                       --output-format json \
                                       --carbon-aware
                                   ' || EXIT_CODE=$?
-
                                 if [ "$EXIT_CODE" -eq 1 ]; then
                                   echo "OPTIMIZER_ERROR"
                                   exit 1
                                 fi
                             ''',
-                                returnStdout: true
+                            returnStdout: true
                         ).trim()
 
                         env.OPTIMIZER_DURATION = ((System.currentTimeMillis() - analyzeStart) / 1000.0).toString()
@@ -363,21 +340,15 @@ pipeline {
                         if (jsonLine) {
                             def result = new groovy.json.JsonSlurper().parseText(jsonLine)
                             env.OPTIMIZER_STATUS = result.status ?: 'unknown'
-
                             def buildCommands = []
                             def testCommands = []
                             for (action in result.actions) {
-                                if (action.name == 'build') {
-                                    buildCommands.add(action.command.join(' '))
-                                } else if (action.name == 'test') {
-                                    testCommands.add(action.command.join(' '))
-                                }
+                                if (action.name == 'build') buildCommands.add(action.command.join(' '))
+                                else if (action.name == 'test') testCommands.add(action.command.join(' '))
                             }
                             env.MAVEN_BUILD_COMMANDS = buildCommands.join('|||')
-                            env.MAVEN_TEST_COMMANDS = testCommands.join('|||')
-
-                            def affectedModules = result.affected_modules ?: []
-                            env.AFFECTED_MODULES = affectedModules.join(',')
+                            env.MAVEN_TEST_COMMANDS  = testCommands.join('|||')
+                            env.AFFECTED_MODULES     = (result.affected_modules ?: []).join(',')
 
                             echo "Optimizer status: ${env.OPTIMIZER_STATUS}"
                             echo "Affected modules: ${env.AFFECTED_MODULES}"
@@ -385,12 +356,12 @@ pipeline {
                             echo "Test commands: ${env.MAVEN_TEST_COMMANDS}"
 
                             if (result.scheduling) {
-                                env.CARBON_INTENSITY = result.scheduling.current_intensity?.toString() ?: ''
-                                env.GREEN_PROBABILITY = result.scheduling.green_probability?.toString() ?: ''
-                                env.SCHEDULING_ACTION = result.scheduling.action ?: ''
-                                env.SCHEDULING_ENGINE = result.scheduling.engine ?: ''
-                                env.SCHEDULED_HOUR = result.scheduling.scheduled_hour?.toString() ?: ''
-                                env.TARGET_INTENSITY = result.scheduling.target_intensity?.toString() ?: ''
+                                env.CARBON_INTENSITY    = result.scheduling.current_intensity?.toString() ?: ''
+                                env.GREEN_PROBABILITY   = result.scheduling.green_probability?.toString() ?: ''
+                                env.SCHEDULING_ACTION   = result.scheduling.action ?: ''
+                                env.SCHEDULING_ENGINE   = result.scheduling.engine ?: ''
+                                env.SCHEDULED_HOUR      = result.scheduling.scheduled_hour?.toString() ?: ''
+                                env.TARGET_INTENSITY    = result.scheduling.target_intensity?.toString() ?: ''
                                 if (result.scheduling.carbon_history) {
                                     env.CARBON_HISTORY = serializeCarbonHistory(result.scheduling.carbon_history)
                                 } else {
@@ -405,20 +376,20 @@ pipeline {
                             } else {
                                 echo "[GreenOptimizer] No scheduling data in optimizer output. Using mock carbon data."
                                 def mockCarbon = buildMockCarbonData()
-                                env.CARBON_INTENSITY    = '320.0'
-                                env.GREEN_PROBABILITY   = '0.35'
-                                env.SCHEDULING_ACTION   = 'execute_now'
-                                env.SCHEDULING_ENGINE   = 'mock'
-                                env.SCHEDULED_HOUR      = ''
-                                env.TARGET_INTENSITY    = ''
-                                env.CARBON_HISTORY      = mockCarbon.history
-                                env.CARBON_FORECAST     = mockCarbon.forecast
+                                env.CARBON_INTENSITY  = '320.0'
+                                env.GREEN_PROBABILITY = '0.35'
+                                env.SCHEDULING_ACTION = 'execute_now'
+                                env.SCHEDULING_ENGINE = 'mock'
+                                env.SCHEDULED_HOUR    = ''
+                                env.TARGET_INTENSITY  = ''
+                                env.CARBON_HISTORY    = mockCarbon.history
+                                env.CARBON_FORECAST   = mockCarbon.forecast
                             }
                         } else {
-                            env.OPTIMIZER_STATUS = 'no_changes'
+                            env.OPTIMIZER_STATUS     = 'no_changes'
                             env.MAVEN_BUILD_COMMANDS = ''
-                            env.MAVEN_TEST_COMMANDS = ''
-                            env.AFFECTED_MODULES = ''
+                            env.MAVEN_TEST_COMMANDS  = ''
+                            env.AFFECTED_MODULES     = ''
                         }
 
                         if (params.DRY_RUN) {
@@ -433,52 +404,66 @@ pipeline {
             when {
                 expression {
                     params.ENABLE_GREEN_SCHEDULING &&
-                            env.OPTIMIZER_STATUS == 'success' &&
-                            env.URGENT_DEPLOY != 'true'   // skip if urgent
+                    env.OPTIMIZER_STATUS == 'success' &&
+                    env.URGENT_DEPLOY != 'true' &&
+                    env.BYPASS_GREEN != 'true'
                 }
             }
             steps {
                 script {
-                    def targetHourStr = params.OVERRIDE_SCHEDULE_HOUR
-                    def shouldSchedule = false
-                    def targetHour = 0
+                    // ────────────────────────────────────────────────────────────────────
+                    // PRE-FLIGHT PHASE
+                    //
+                    // Query BOTH schedulers here, before any build work,
+                    // to agree on ONE green window and ONE deploy strategy.
+                    //
+                    // greenSchedule() internally:
+                    //   1. Reads ML Optimizer output already in env vars
+                    //   2. Makes a single-shot call to the Green AI Agent
+                    //   3. Combines signals into one SchedulingDecision
+                    // ────────────────────────────────────────────────────────────────────
+                    def decision = greenSchedule(
+                        schedulingAction : env.SCHEDULING_ACTION,
+                        scheduledHour    : env.SCHEDULED_HOUR,
+                        greenProbability : env.GREEN_PROBABILITY,
+                        carbonIntensity  : env.CARBON_INTENSITY,
+                        overrideHour     : params.OVERRIDE_SCHEDULE_HOUR,
+                        urgentDeploy     : false,  // already gated in when{} above
+                        agentUrl         : env.GREEN_AGENT_URL
+                    )
 
-                    if (targetHourStr != 'auto') {
-                        targetHour = targetHourStr.toInteger()
-                        echo "Developer OVERRIDE: Scheduling build for ${targetHour}:00."
-                        shouldSchedule = true
-                    } else if (env.SCHEDULING_ACTION == 'schedule' && env.SCHEDULED_HOUR) {
-                        targetHour = env.SCHEDULED_HOUR.toInteger()
-                        echo "Carbon intensity is high (${env.CARBON_INTENSITY}). ML Model recommends delaying until ${targetHour}:00."
-                        shouldSchedule = true
-                    } else if (env.SCHEDULING_ACTION == 'execute_now') {
-                        echo "ML Model says it's a Green Window right now! Proceeding with build."
-                    }
+                    // Store all decision fields for dashboard and downstream stages
+                    env.COMBINED_CONFIDENCE   = decision.mlGreenProbability.toString()
+                    env.ML_GREEN_PROBABILITY  = decision.mlGreenProbability.toString()
+                    env.AI_CONFIDENCE         = decision.aiConfidence.toString()
+                    env.BOTH_SCHEDULERS_AGREE = "N/A"
+                    env.SCHEDULING_REASON     = decision.reason.toString()
 
-                    if (shouldSchedule) {
-                        def now = new Date()
-                        def currentHour = now.getHours()
-                        def hoursToWait = targetHour - currentHour
-                        if (hoursToWait <= 0) {
-                            hoursToWait += 24
-                        }
+                    if (decision.shouldSchedule) {
+                        // Pre-select deploy strategy NOW so it survives the reschedule
+                        env.DEPLOY_STRATEGY = decision.preSelectedStrategy
 
-                        def delayInSeconds = hoursToWait * 3600
+                        build job: env.JOB_NAME,
+                              quietPeriod: decision.delaySeconds,
+                              wait: false,
+                              parameters: [
+                                  booleanParam(name: 'ENABLE_GREEN_SCHEDULING', value: false),
+                                  booleanParam(name: 'DRY_RUN',                 value: params.DRY_RUN),
+                                  booleanParam(name: 'FORCE_FULL_BUILD',        value: params.FORCE_FULL_BUILD),
+                                  string(name: 'OVERRIDE_SCHEDULE_HOUR',        value: 'auto'),
+                                  string(name: 'PRE_SELECTED_STRATEGY',         value: decision.preSelectedStrategy)
+                              ]
 
-                        echo "Queueing a new build to start in ${hoursToWait} hours (${delayInSeconds} seconds)..."
-
-                        build job: env.JOB_NAME, quietPeriod: delayInSeconds, wait: false, parameters: [
-                                booleanParam(name: 'ENABLE_GREEN_SCHEDULING', value: false),
-                                booleanParam(name: 'DRY_RUN', value: params.DRY_RUN),
-                                booleanParam(name: 'FORCE_FULL_BUILD', value: params.FORCE_FULL_BUILD),
-                                string(name: 'OVERRIDE_SCHEDULE_HOUR', value: 'auto')
-                        ]
-
-                        currentBuild.description = "Rescheduled for ${targetHour}:00"
+                        currentBuild.description = "🌿 Rescheduled for ${decision.scheduledHour}:00 | Strategy: ${decision.preSelectedStrategy} | ML Prob: ${String.format('%.2f', decision.mlGreenProbability)}"
                         env.IS_RESCHEDULED = 'true'
                         currentBuild.result = 'ABORTED'
-                        error("Pipeline rescheduled to a greener window at ${targetHour}:00 to save carbon.")
+                        error("Pipeline rescheduled to a greener window at ${decision.scheduledHour}:00. Strategy pre-selected: ${decision.preSelectedStrategy}.")
                     }
+
+                    // Green now — set strategy and continue straight to build
+                    env.DEPLOY_STRATEGY = decision.preSelectedStrategy
+                    echo "🌿 Green window confirmed right now. Strategy pre-selected: ${env.DEPLOY_STRATEGY}"
+                    echo "📊 ML Probability: ${String.format('%.2f', decision.mlGreenProbability)} | AI Strategy Confidence: ${String.format('%.2f', decision.aiConfidence)}"
                 }
             }
         }
@@ -511,7 +496,6 @@ pipeline {
                     script {
                         def testStart = System.currentTimeMillis()
                         echo "Running selective tests for modules: ${env.AFFECTED_MODULES}"
-
                         def testOutput = ''
                         env.MAVEN_TEST_COMMANDS.split('\\|\\|\\|').each { cmd ->
                             echo "Executing: ${cmd}"
@@ -522,24 +506,21 @@ pipeline {
                         def testsRun = 0
                         def testsSkipped = 0
                         def moduleDetails = [:]
-
                         def inventory = discoverModuleTestInventory()
-                        def executed = readSurefireTestCounts()
-                        def affected = affectedModuleSet()
+                        def executed  = readSurefireTestCounts()
+                        def affected  = affectedModuleSet()
 
                         greenReleaseModules().each { mod ->
-                            def moduleTotal = inventory[mod] ?: 0
-                            def moduleRun = affected.contains(mod) ? (executed[mod] ?: 0) : 0
+                            def moduleTotal   = inventory[mod] ?: 0
+                            def moduleRun     = affected.contains(mod) ? (executed[mod] ?: 0) : 0
                             def moduleSkipped = affected.contains(mod) ? 0 : moduleTotal
-                            def status = affected.contains(mod) ? 'run' : 'skipped'
-
-                            moduleDetails[mod] = ['status': status, 'run': moduleRun, 'skipped': moduleSkipped]
-                            testsRun += moduleRun
+                            moduleDetails[mod] = ['status': affected.contains(mod) ? 'run' : 'skipped', 'run': moduleRun, 'skipped': moduleSkipped]
+                            testsRun     += moduleRun
                             testsSkipped += moduleSkipped
                         }
 
                         env.TESTS_EXECUTED = testsRun.toString()
-                        env.TESTS_SKIPPED = testsSkipped.toString()
+                        env.TESTS_SKIPPED  = testsSkipped.toString()
                         env.MODULE_DETAILS = groovy.json.JsonOutput.toJson(moduleDetails).replaceAll('"', '\\\\"')
 
                         echo "Total tests executed: ${env.TESTS_EXECUTED}"
@@ -551,16 +532,13 @@ pipeline {
         }
 
         stage('Docker Build') {
-            when {
-                expression { !params.DRY_RUN && appAffected() }
-            }
+            when { expression { !params.DRY_RUN && appAffected() } }
             steps {
                 dir(env.WORK_DIR) {
                     script {
                         def dockerStart = System.currentTimeMillis()
                         dir('app') {
                             echo "Building Docker image: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                            // Also tag :canary so the deployment optimizer can use canary strategy.
                             sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -t ${DOCKER_IMAGE}:latest -t ${DOCKER_IMAGE}:canary ."
                         }
                         env.DOCKER_BUILD_DURATION = ((System.currentTimeMillis() - dockerStart) / 1000.0).toString()
@@ -569,108 +547,61 @@ pipeline {
             }
         }
 
-        // NOTE: Docker Push isn't part of the SSH/OPC problem, so it's left
-        // as-is. Since deploys are local now, this push isn't strictly
-        // required for the demo to work, but keeping it doesn't hurt.
-        stage('Docker Push') {
-            when {
-                expression { !params.DRY_RUN && appAffected() }
-            }
-            steps {
-                sh """
-                    echo "${DOCKER_HUB_CREDENTIALS_PSW}" | docker login -u "${DOCKER_HUB_CREDENTIALS_USR}" --password-stdin
-                    docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
-                    docker push ${DOCKER_IMAGE}:latest
-                    docker push ${DOCKER_IMAGE}:canary
-                    docker logout
-                    echo "[DOCKER] Push complete"
-                """
-            }
-        }
-
-        // ═════════════════════════════════════════════════════════════════
-        //  GROUP B — DEPLOYMENT OPTIMIZER (unchanged, "mine")
-        //  Only runs when the app image actually changed this build.
-        //  Deploy stages below now run LOCALLY on the Jenkins agent —
-        //  no more SSH to the OPC box.
-        // ═════════════════════════════════════════════════════════════════
-
-        stage('Green AI Check') {
-            when {
-                expression {
-                    !params.DRY_RUN &&
-                            appAffected() &&
-                            env.URGENT_DEPLOY != 'true'
-                }
-            }
-
+        stage('Confirm Deploy Strategy') {
+            when { expression { !params.DRY_RUN && appAffected() && env.URGENT_DEPLOY != 'true' && env.BYPASS_GREEN != 'true' } }
             steps {
                 script {
+                    def liveStrategy = greenCheck(singleShot: true)
 
-                    // ============================================================
-                    // CRITICAL FIX
-                    //
-                    // greenCheck() now RETURNS the strategy.
-                    // We explicitly assign it to Jenkins env.
-                    // ============================================================
-
-                    def selectedStrategy = greenCheck()
-
-                    if (!selectedStrategy) {
-                        echo "⚠️ Green AI returned no strategy."
-                        echo "   Using safe fallback: rolling"
-                        selectedStrategy = 'rolling'
+                    if (!liveStrategy) {
+                        echo '⚠️ Confirm check returned no strategy. Keeping current strategy.'
+                        liveStrategy = env.DEPLOY_STRATEGY ?: 'rolling'
+                    }
+                    liveStrategy = liveStrategy.toString().toLowerCase().trim()
+                    if (!(liveStrategy in ['canary', 'rolling', 'recreate'])) {
+                        echo "⚠️ Confirm check returned invalid strategy '${liveStrategy}'. Keeping current strategy."
+                        liveStrategy = env.DEPLOY_STRATEGY ?: 'rolling'
                     }
 
-                    selectedStrategy =
-                            selectedStrategy.toString().toLowerCase().trim()
+                    def preSelected = env.DEPLOY_STRATEGY ?: ''
 
-                    // Validate before assigning
-                    if (!(selectedStrategy in ['canary', 'rolling', 'recreate'])) {
-
-                        echo "⚠️ Invalid deployment strategy returned: ${selectedStrategy}"
-                        echo "   Using safe fallback: rolling"
-
-                        selectedStrategy = 'rolling'
+                    if (preSelected && preSelected != liveStrategy) {
+                        echo "⚠️ Carbon conditions shifted since scheduling:"
+                        echo "   Pre-selected strategy : ${preSelected}"
+                        echo "   Live check suggests   : ${liveStrategy}"
+                        echo "   Decision              : Keeping pre-selected strategy (${preSelected}) to honour scheduling commitment."
+                    } else if (!preSelected) {
+                        env.DEPLOY_STRATEGY = liveStrategy
+                        echo "🌿 No pre-selected strategy. Using live check result: ${env.DEPLOY_STRATEGY}"
+                    } else {
+                        echo "✅ Strategy confirmed: ${env.DEPLOY_STRATEGY} (pre-selected and live check agree)"
                     }
 
-                    // Explicitly persist the strategy
-                    env.DEPLOY_STRATEGY = selectedStrategy
-
-                    echo "🌿 AI selected deployment strategy: ${env.DEPLOY_STRATEGY}"
-
-                    // Final safety check
-                    if (!(env.DEPLOY_STRATEGY in ['canary', 'rolling', 'recreate'])) {
-                        error("Invalid deployment strategy: ${env.DEPLOY_STRATEGY}")
-                    }
+                    echo "🌿 Final deploy strategy: ${env.DEPLOY_STRATEGY}"
                 }
             }
         }
 
         stage('Notify Deployment Start') {
-            when {
-                expression { !params.DRY_RUN && appAffected() }
+            when { expression { !params.DRY_RUN && appAffected() } }
+            steps { 
+                script {
+                    env.DEPLOY_START_MS = System.currentTimeMillis().toString()
+                }
+                notifyStart() 
             }
-            steps { notifyStart() }
         }
 
         stage('Carbon Snapshot - Before') {
-            when {
-                expression { !params.DRY_RUN && appAffected() }
-            }
+            when { expression { !params.DRY_RUN && appAffected() } }
             steps { carbonSnapshot(phase: 'before') }
         }
 
-        // ── CANARY ──────────────────────────────────────────────────────
         stage('Deploy Canary') {
             when { expression { !params.DRY_RUN && appAffected() && env.DEPLOY_STRATEGY == 'canary' } }
             steps {
                 sh """
                     set -e
-                    echo "[CANARY] Pulling canary image..."
-                    docker pull ${DOCKER_IMAGE}:canary
-
-                    echo "[CANARY] Starting canary container on port 8880..."
                     docker rm -f ${CANARY_CONTAINER} 2>/dev/null || true
                     docker run -d \
                         --name ${CANARY_CONTAINER} \
@@ -678,9 +609,28 @@ pipeline {
                         --label role=canary \
                         --label build=${BUILD_NUMBER} \
                         ${DOCKER_IMAGE}:canary
-
-                    sleep 10
-                    curl -sf http://localhost:8880/health && echo "[CANARY] Canary healthy" || exit 1
+                    # Wait for the canary container to become healthy.
+                    # Spring Boot apps can take 15–30s to start; retry for up to 60s.
+                    HEALTH_OK=0
+                    for i in \$(seq 1 12); do
+                        sleep 5
+                        if curl -sf http://localhost:8880/health > /dev/null 2>&1; then
+                            echo "[CANARY] Healthy on /health (attempt \${i})"
+                            HEALTH_OK=1
+                            break
+                        fi
+                        if curl -sf http://localhost:8880/actuator/health > /dev/null 2>&1; then
+                            echo "[CANARY] Healthy on /actuator/health (attempt \${i})"
+                            HEALTH_OK=1
+                            break
+                        fi
+                        echo "[CANARY] Not ready yet... (attempt \${i}/12)"
+                    done
+                    if [ "\${HEALTH_OK}" -ne 1 ]; then
+                        echo "[CANARY] Container failed to become healthy within 60s"
+                        docker logs ${CANARY_CONTAINER} --tail 50
+                        exit 1
+                    fi
                 """
                 carbonSnapshot(phase: 'canary_live', infraMultiplier: '1.2', canaryWeight: env.CANARY_WEIGHT, note: 'stable_plus_canary_running')
             }
@@ -689,21 +639,12 @@ pipeline {
         stage('Observe Canary') {
             when { expression { !params.DRY_RUN && appAffected() && env.DEPLOY_STRATEGY == 'canary' } }
             steps {
-                echo "Observing canary for ${CANARY_WAIT_SECS}s..."
                 sleep time: "${CANARY_WAIT_SECS}", unit: 'SECONDS'
                 sh """
                     set -e
-                    echo "[CANARY] Health check..."
                     curl -sf http://localhost:8880/health
-
-                    echo "[CANARY] Error rate check (last 60s)..."
                     ERROR_COUNT=\$(docker logs --since=60s ${CANARY_CONTAINER} 2>&1 | grep -ci ERROR || true)
-                    echo "Errors detected: \$ERROR_COUNT"
-
-                    if [ "\$ERROR_COUNT" -gt 5 ]; then
-                        echo "[CANARY] Too many errors - triggering rollback"
-                        exit 1
-                    fi
+                    if [ "\$ERROR_COUNT" -gt 5 ]; then exit 1; fi
                     echo "[CANARY] Error rate acceptable"
                 """
             }
@@ -715,16 +656,10 @@ pipeline {
                 dir(env.WORK_DIR) {
                     sh """
                         set -e
-                        echo "[CANARY] Promoting: tag canary as latest..."
                         docker tag ${DOCKER_IMAGE}:canary ${DOCKER_IMAGE}:latest
-
-                        echo "[CANARY] Restarting stable with promoted image..."
                         docker-compose down
                         docker-compose up -d
-
-                        echo "[CANARY] Removing canary sidecar..."
                         docker rm -f ${CANARY_CONTAINER} || true
-
                         sleep 15
                         docker-compose ps
                     """
@@ -733,30 +668,23 @@ pipeline {
             }
         }
 
-        // ── ROLLING ─────────────────────────────────────────────────────
         stage('Deploy Rolling') {
             when { expression { !params.DRY_RUN && appAffected() && env.DEPLOY_STRATEGY == 'rolling' } }
             steps {
                 dir(env.WORK_DIR) {
                     sh """
                         set -e
-                        echo "[ROLLING] Pulling new image..."
-                        docker pull ${DOCKER_IMAGE}:latest
-
                         CONTAINERS=\$(docker-compose ps -q)
                         TOTAL=\$(echo "\$CONTAINERS" | wc -w)
                         echo "[ROLLING] Found \$TOTAL containers to roll"
-
                         for CONTAINER in \$CONTAINERS; do
                             NAME=\$(docker inspect --format="{{.Name}}" \$CONTAINER | sed "s#^/##")
-                            echo "[ROLLING] Replacing \$NAME..."
                             docker stop --time=10 \$CONTAINER || true
                             docker-compose up -d --no-deps 2>/dev/null || true
                             sleep ${ROLLING_WAIT_SECS}
-                            curl -sf http://localhost:8080/health || (echo "Health check failed"; exit 1)
+                            curl -sf http://localhost:8080/health || exit 1
                             echo "[ROLLING] \$NAME replaced successfully"
                         done
-
                         docker-compose ps
                     """
                 }
@@ -764,20 +692,13 @@ pipeline {
             }
         }
 
-        // ── RECREATE ────────────────────────────────────────────────────
         stage('Deploy Recreate') {
             when { expression { !params.DRY_RUN && appAffected() && env.DEPLOY_STRATEGY == 'recreate' } }
             steps {
                 dir(env.WORK_DIR) {
                     sh """
                         set -e
-                        echo "[RECREATE] Stopping all containers..."
                         docker-compose down
-
-                        echo "[RECREATE] Pulling new image..."
-                        docker pull ${DOCKER_IMAGE}:latest
-
-                        echo "[RECREATE] Starting new containers..."
                         docker-compose up -d
                         sleep 20
                         docker-compose ps
@@ -801,7 +722,7 @@ pipeline {
                 if (appAffected() && !params.DRY_RUN) {
                     def img = "${DOCKER_IMAGE}:${DOCKER_TAG}"
                     notifyEnd(status: 'SUCCESS', image: img)
-                    echo "Deployment complete - Strategy: ${env.DEPLOY_STRATEGY} | Carbon: ${env.CARBON_RATING}"
+                    echo "Deployment complete — Strategy: ${env.DEPLOY_STRATEGY} | Carbon: ${env.CARBON_RATING}"
                 }
             }
             dir(env.WORK_DIR) {
@@ -813,7 +734,7 @@ pipeline {
         failure {
             script {
                 if (env.DEPLOY_STRATEGY == 'canary' && appAffected()) {
-                    sh "docker rm -f ${CANARY_CONTAINER} || true && echo '[CANARY] Rolled back'"
+                    sh "docker rm -f ${CANARY_CONTAINER} || true"
                 }
                 if (appAffected() && !params.DRY_RUN) {
                     notifyEnd(status: 'FAILURE')
@@ -823,14 +744,14 @@ pipeline {
         }
 
         always {
-            // Dashboard metrics for the build-optimization side (Component: Beliver's dashboard)
             dir(env.WORK_DIR) {
                 script {
                     def totalDuration = (System.currentTimeMillis() - env.PIPELINE_START.toLong()) / 1000.0
-
                     def currentStatus = currentBuild.currentResult ?: 'UNKNOWN'
-                    if (env.IS_RESCHEDULED == 'true') {
-                        currentStatus = 'RESCHEDULED'
+                    if (env.IS_RESCHEDULED == 'true') currentStatus = 'RESCHEDULED'
+
+                    if (env.DEPLOY_START_MS) {
+                        env.DEPLOY_DURATION = ((System.currentTimeMillis() - env.DEPLOY_START_MS.toLong()) / 1000.0).toString()
                     }
 
                     def cleanCommitMsg = (env.COMMIT_MSG ?: '').replaceAll('"', '\\\\"')
@@ -845,6 +766,7 @@ pipeline {
                         "build_duration_s": ${env.BUILD_DURATION ?: 'null'},
                         "test_duration_s": ${env.TEST_DURATION ?: 'null'},
                         "docker_duration_s": ${env.DOCKER_BUILD_DURATION ?: 'null'},
+                        "deploy_duration_s": ${env.DEPLOY_DURATION ?: 'null'},
                         "optimizer_duration_s": ${env.OPTIMIZER_DURATION ?: 'null'},
                         "modules_built": "${env.AFFECTED_MODULES ?: ''}",
                         "modules_tested": "${env.AFFECTED_MODULES ?: ''}",
@@ -859,7 +781,12 @@ pipeline {
                         "scheduling_engine": "${env.SCHEDULING_ENGINE ?: ''}",
                         "carbon_history": ${env.CARBON_HISTORY ?: '[]'},
                         "carbon_forecast": ${env.CARBON_FORECAST ?: '[]'},
-                        "deploy_strategy": "${env.DEPLOY_STRATEGY ?: ''}"
+                        "deploy_strategy": "${env.DEPLOY_STRATEGY ?: ''}",
+                        "combined_confidence": ${env.COMBINED_CONFIDENCE ?: 'null'},
+                        "ml_green_probability": ${env.ML_GREEN_PROBABILITY ?: 'null'},
+                        "ai_confidence": ${env.AI_CONFIDENCE ?: 'null'},
+                        "both_schedulers_agree": "${env.BOTH_SCHEDULERS_AGREE ?: ''}",
+                        "scheduling_reason": "${(env.SCHEDULING_REASON ?: '').replaceAll('"', '\\\\"')}"
                     }"""
 
                     writeFile file: 'dashboard_payload.json', text: jsonPayload
@@ -868,13 +795,13 @@ pipeline {
                         curl -s -X POST ${DASHBOARD_URL}/api/builds \
                             -H "Content-Type: application/json" \
                             -d @dashboard_payload.json || \
-                        curl -s -X POST http://localhost:5003/api/builds \
+                        curl -s -X POST http://localhost:5005/api/builds \
                             -H "Content-Type: application/json" \
                             -d @dashboard_payload.json || \
-                        curl -s -X POST http://127.0.0.1:5003/api/builds \
+                        curl -s -X POST http://127.0.0.1:5005/api/builds \
                             -H "Content-Type: application/json" \
                             -d @dashboard_payload.json || \
-                        curl -s -X POST http://172.17.0.1:5003/api/builds \
+                        curl -s -X POST http://172.17.0.1:5005/api/builds \
                             -H "Content-Type: application/json" \
                             -d @dashboard_payload.json || \
                         echo "Failed to send metrics to dashboard."
